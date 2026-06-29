@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RunUp — 10K Trainer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg: #0a0a0f;
+  --bg2: #12121a;
+  --bg3: #1a1a26;
+  --card: #16161f;
+  --card2: #1e1e2e;
+  --orange: #ff6b2b;
+  --orange-d: #cc4400;
+  --orange-l: rgba(255,107,43,0.12);
+  --orange-gl: rgba(255,107,43,0.06);
+  --green: #00d68f;
+  --green-l: rgba(0,214,143,0.1);
+  --blue: #4d9fff;
+  --blue-l: rgba(77,159,255,0.1);
+  --purple: #a78bfa;
+  --purple-l: rgba(167,139,250,0.1);
+  --amber: #fbbf24;
+  --red: #f87171;
+  --text: #f0f0f8;
+  --text2: #9090a8;
+  --text3: #5a5a72;
+  --border: rgba(255,255,255,0.07);
+  --radius: 14px;
+  --font: 'Space Grotesk', sans-serif;
+  --mono: 'Space Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+/* ── AUTH ── */
+#auth {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 2rem; text-align: center;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,107,43,0.15) 0%, transparent 70%);
+}
+.auth-glyph {
+  font-size: 64px; margin-bottom: 1rem;
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.auth-title { font-size: 32px; font-weight: 700; margin-bottom: .4rem; letter-spacing: -1px; }
+.auth-title span { color: var(--orange); }
+.auth-sub { font-size: 14px; color: var(--text2); max-width: 300px; margin: 0 auto 2rem; line-height: 1.7; }
+.cid-group { width: 100%; max-width: 360px; text-align: left; margin-bottom: 14px; }
+.cid-group label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; display: block; margin-bottom: 6px; }
+.cid-group input { width: 100%; background: var(--bg3); border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--text); font-family: var(--mono); outline: none; transition: border .2s; }
+.cid-group input:focus { border-color: var(--orange); }
+.btn-signin {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--orange); color: #fff; border: none; border-radius: 12px;
+  padding: 14px 28px; font-size: 15px; font-weight: 700; cursor: pointer;
+  font-family: var(--font); letter-spacing: -.2px;
+  box-shadow: 0 0 30px rgba(255,107,43,.4);
+  transition: transform .15s, box-shadow .15s;
+}
+.btn-signin:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(255,107,43,.6); }
+.setup-box { margin-top: 1.75rem; background: rgba(255,107,43,.07); border: 1px solid rgba(255,107,43,.2); border-radius: var(--radius); padding: 1.25rem; max-width: 380px; text-align: left; }
+.setup-box h4 { font-size: 12px; font-weight: 700; color: var(--orange); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 10px; }
+.setup-box code { font-family: var(--mono); font-size: 11px; background: rgba(255,255,255,.05); padding: 5px 9px; border-radius: 6px; display: block; margin: 4px 0 10px; word-break: break-all; color: var(--text2); }
+.setup-box ol { font-size: 12px; color: var(--text2); padding-left: 1.1rem; line-height: 2.2; }
+.setup-box a { color: var(--orange); }
+
+/* ── APP ── */
+#app { display: none; max-width: 480px; margin: 0 auto; padding-bottom: 80px; }
+
+/* ── TOPBAR ── */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  background: rgba(10,10,15,.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;
+}
+.brand { display: flex; align-items: center; gap: 9px; }
+.brand-icon { font-size: 22px; }
+.brand-name { font-size: 17px; font-weight: 700; letter-spacing: -.5px; }
+.brand-name span { color: var(--orange); }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.xp-pill {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--orange-l); border: 1px solid rgba(255,107,43,.25);
+  border-radius: 20px; padding: 4px 10px; font-size: 12px; font-weight: 700; color: var(--orange);
+}
+.sync-btn {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 10px; font-size: 12px; font-weight: 600; color: var(--text2);
+  cursor: pointer; display: flex; align-items: center; gap: 4px; font-family: var(--font);
+}
+.sync-btn svg { transition: transform .3s; }
+.sync-btn.spin svg { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── TABS ── */
+.tabs {
+  display: flex; gap: 0; background: var(--bg2); border-bottom: 1px solid var(--border);
+  overflow-x: auto; padding: 0 8px;
+}
+.tab {
+  padding: 11px 14px; font-size: 13px; font-weight: 600; color: var(--text3);
+  cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent;
+  white-space: nowrap; margin-bottom: -1px; font-family: var(--font); transition: color .2s;
+}
+.tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+/* ── PANES ── */
+.pane { display: none; padding: 16px; }
+.pane.active { display: block; }
+.sec { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); margin: 18px 0 10px; }
+.sec:first-child { margin-top: 0; }
+
+/* ── HERO TRACK ── */
+.hero {
+  background: linear-gradient(135deg, #0f0f1a 0%, #1a0f00 100%);
+  border: 1px solid var(--border); border-radius: 20px;
+  padding: 20px; margin-bottom: 16px; position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; top: -40px; right: -40px;
+  width: 160px; height: 160px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,107,43,.2) 0%, transparent 70%);
+}
+.hero-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+.hero-left { flex: 1; }
+.hero-phase { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--orange); margin-bottom: 5px; }
+.hero-title { font-size: 22px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 4px; }
+.hero-sub { font-size: 12px; color: var(--text2); line-height: 1.6; max-width: 220px; }
+.hero-ring { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+.hero-ring svg { transform: rotate(-90deg); }
+.hero-ring-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.hero-ring-pct { font-size: 18px; font-weight: 700; font-family: var(--mono); color: var(--orange); line-height: 1; }
+.hero-ring-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; margin-top: 1px; }
+.hero-track { margin-top: 4px; }
+.hero-track-bar { height: 6px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; margin-bottom: 5px; }
+.hero-track-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--orange-d), var(--orange)); transition: width 1s ease; position: relative; overflow: hidden; }
+.hero-track-fill::after { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent); animation: shimmer 2s infinite; }
+@keyframes shimmer { to { left: 100%; } }
+.hero-track-meta { display: flex; justify-content: space-between; font-size: 10px; color: var(--text3); font-family: var(--mono); }
+
+/* ── DAY CHIP ── */
+.day-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--orange-l); border: 1px solid rgba(255,107,43,.25);
+  border-radius: 20px; padding: 4px 12px 4px 8px; font-size: 12px; font-weight: 600;
+  color: var(--orange); margin-bottom: 14px;
+}
+
+/* ── MISSION CARD ── */
+.mission {
+  background: linear-gradient(135deg, rgba(255,107,43,.08), rgba(255,107,43,.02));
+  border: 1.5px solid rgba(255,107,43,.25); border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+}
+.mission-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.mission-title { font-size: 14px; font-weight: 700; color: var(--orange); }
+.mission-pts { font-size: 11px; font-weight: 700; background: var(--orange-l); color: var(--orange); padding: 3px 10px; border-radius: 20px; }
+.task { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.task:last-child { border-bottom: none; padding-bottom: 0; }
+.task-chk {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; cursor: pointer;
+  border: 2px solid var(--border); display: flex; align-items: center; justify-content: center;
+  font-size: 11px; transition: all .2s; background: transparent;
+}
+.task-chk.done { background: var(--green); border-color: var(--green); color: #000; }
+.task-body { flex: 1; }
+.task-text { font-size: 13px; color: var(--text); }
+.task-meta { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.task-pts { font-size: 11px; font-weight: 700; color: var(--green); white-space: nowrap; }
+
+/* ── STAT GRID ── */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.stat {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px;
+  position: relative; overflow: hidden; transition: border-color .2s;
+}
+.stat.goal-hit { border-color: var(--green); }
+.stat.goal-hit::after { content: '✓'; position: absolute; top: 8px; right: 10px; font-size: 13px; color: var(--green); font-weight: 700; }
+.stat-icon { font-size: 22px; margin-bottom: 6px; display: block; }
+.stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text3); margin-bottom: 4px; }
+.stat-value { font-size: 24px; font-weight: 700; font-family: var(--mono); color: var(--text); line-height: 1; }
+.stat-unit { font-size: 12px; font-weight: 400; color: var(--text3); margin-left: 2px; }
+.stat-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.stat-bar { height: 4px; background: rgba(255,255,255,.06); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+.stat-fill { height: 100%; border-radius: 2px; transition: width .8s ease; }
+
+/* ── HR CARD ── */
+.hr-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 16px;
+}
+.hr-card-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.hr-card-title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.heartbeat { animation: heartbeat 1.2s ease-in-out infinite; display: inline-block; }
+@keyframes heartbeat { 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
+.hr-manual-btn { font-size: 11px; font-weight: 600; background: var(--blue-l); color: var(--blue); border: none; border-radius: 8px; padding: 5px 10px; cursor: pointer; font-family: var(--font); }
+.hr-display { display: flex; align-items: flex-end; gap: 4px; margin-bottom: 12px; }
+.hr-bpm { font-size: 42px; font-weight: 700; font-family: var(--mono); color: var(--text); line-height: 1; }
+.hr-unit { font-size: 14px; color: var(--text3); margin-bottom: 6px; }
+.hr-status { font-size: 12px; margin-bottom: 12px; }
+.hr-zones { display: flex; flex-direction: column; gap: 6px; }
+.zone { display: flex; align-items: center; gap: 8px; }
+.zone-label { font-size: 11px; color: var(--text3); width: 90px; flex-shrink: 0; }
+.zone-bar { flex: 1; height: 6px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: hidden; }
+.zone-fill { height: 100%; border-radius: 3px; }
+.zone-pct { font-size: 10px; font-family: var(--mono); color: var(--text3); width: 28px; text-align: right; }
+.hr-manual-panel { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.hr-input-row { display: flex; gap: 8px; align-items: center; }
+.hr-input { flex: 1; background: var(--bg3); border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 15px; font-family: var(--mono); color: var(--text); outline: none; }
+.hr-input:focus { border-color: var(--blue); }
+.hr-save { background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--font); }
+.hr-hint { font-size: 11px; color: var(--text3); margin-top: 8px; line-height: 1.6; }
+
+/* ── CHART CARD ── */
+.chart-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 10px; margin-bottom: 16px; }
+.chart-wrap { position: relative; width: 100%; height: 160px; }
+
+/* ── TIPS ── */
+.tip-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 16px; }
+.tip { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.tip:last-child { border-bottom: none; }
+.tip-ic { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.tip-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.tip-body { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+/* ── REWARDS ── */
+.xp-hero {
+  background: linear-gradient(135deg, #1a1000, #0f0a1a);
+  border: 1px solid rgba(251,191,36,.2); border-radius: 20px; padding: 20px; margin-bottom: 16px;
+}
+.xp-hero-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.xp-level { font-size: 12px; font-weight: 700; color: var(--amber); text-transform: uppercase; letter-spacing: .08em; }
+.xp-title { font-size: 24px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 3px; }
+.xp-sub { font-size: 12px; color: var(--text2); }
+.xp-big { font-size: 52px; font-weight: 700; font-family: var(--mono); color: var(--amber); line-height: 1; }
+.xp-bar-wrap { margin-top: 14px; }
+.xp-bar-track { height: 8px; background: rgba(255,255,255,.07); border-radius: 4px; overflow: hidden; margin-bottom: 5px; }
+.xp-bar-fill { height: 100%; background: linear-gradient(90deg, #f59e0b, #fbbf24); border-radius: 4px; transition: width 1s ease; }
+.xp-bar-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); font-family: var(--mono); }
+
+.streak-card {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 16px;
+}
+.streak-flame { font-size: 44px; line-height: 1; }
+.streak-info { flex: 1; }
+.streak-count { font-size: 32px; font-weight: 700; font-family: var(--mono); color: var(--orange); line-height: 1; }
+.streak-label { font-size: 13px; font-weight: 600; }
+.streak-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+.badges-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.badge-item {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 10px; text-align: center; transition: border-color .2s;
+}
+.badge-item.earned { border-color: var(--amber); }
+.badge-item.earned .badge-icon { filter: none; }
+.badge-icon { font-size: 32px; display: block; margin-bottom: 6px; filter: grayscale(1) opacity(.3); }
+.badge-name { font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; }
+.badge-pts { font-size: 10px; color: var(--amber); font-family: var(--mono); margin-top: 2px; }
+
+.recent-points { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 16px; }
+.pt-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.pt-row:last-child { border-bottom: none; }
+.pt-desc { font-size: 13px; color: var(--text); }
+.pt-time { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.pt-val { font-size: 14px; font-weight: 700; font-family: var(--mono); color: var(--green); }
+
+/* ── MILESTONE JOURNEY ── */
+.journey-list { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 16px; }
+.ms { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.ms:last-child { border-bottom: none; }
+.ms-dot { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.ms-dot.done { background: var(--green-l); }
+.ms-dot.active { background: var(--orange-l); box-shadow: 0 0 0 3px rgba(255,107,43,.2); }
+.ms-dot.locked { background: rgba(255,255,255,.04); filter: grayscale(1); opacity: .4; }
+.ms-info { flex: 1; }
+.ms-status { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 3px; }
+.ms-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.ms-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.ms-km { font-size: 11px; font-weight: 700; color: var(--orange); margin-top: 3px; }
+
+/* ── PLAN ── */
+.week-block { margin-bottom: 14px; }
+.week-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.week-hdr-name { font-size: 13px; font-weight: 700; }
+.wbadge { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: .05em; }
+.wbadge-walk { background: rgba(0,214,143,.12); color: var(--green); }
+.wbadge-walkrun { background: rgba(77,159,255,.12); color: var(--blue); }
+.wbadge-run { background: rgba(167,139,250,.12); color: var(--purple); }
+.wbadge-race { background: rgba(255,107,43,.12); color: var(--orange); }
+.week-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 14px; }
+.day-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.05); font-size: 13px; }
+.day-row:last-child { border-bottom: none; }
+.day-n { width: 28px; font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; }
+.day-t { flex: 1; color: var(--text); }
+.day-d { font-size: 11px; color: var(--text3); white-space: nowrap; font-family: var(--mono); }
+.chk { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+.chk-y { background: var(--green-l); color: var(--green); }
+.chk-n { background: rgba(255,255,255,.04); color: var(--text3); border: 1px solid var(--border); }
+.chk-t { background: var(--orange-l); color: var(--orange); }
+
+/* ── CELEBRATE OVERLAY ── */
+.celebrate { position: fixed; inset: 0; pointer-events: none; z-index: 999; display: flex; align-items: center; justify-content: center; }
+.celebrate-popup {
+  background: linear-gradient(135deg, #1a1000, #0f0a00);
+  border: 2px solid var(--orange); border-radius: 20px; padding: 2rem;
+  text-align: center; transform: scale(0); transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+  pointer-events: auto;
+}
+.celebrate.show .celebrate-popup { transform: scale(1); }
+.celebrate-emoji { font-size: 60px; display: block; margin-bottom: .5rem; }
+.celebrate-title { font-size: 22px; font-weight: 700; color: var(--orange); margin-bottom: .3rem; }
+.celebrate-sub { font-size: 14px; color: var(--text2); margin-bottom: 1rem; }
+.celebrate-pts { font-size: 36px; font-weight: 700; font-family: var(--mono); color: var(--amber); }
+.celebrate-dismiss { margin-top: 1rem; background: var(--orange); color: #fff; border: none; border-radius: 10px; padding: 10px 24px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font); }
+
+/* ── CONFETTI ── */
+.confetti-piece { position: fixed; width: 8px; height: 8px; border-radius: 2px; animation: fall linear forwards; pointer-events: none; z-index: 998; }
+@keyframes fall { to { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 1px solid var(--border); color: var(--text); padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 999; white-space: nowrap; }
+.toast.show { opacity: 1; }
+.err-banner { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.3); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--red); margin-bottom: 12px; display: none; }
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth">
+  <div class="auth-glyph">🏃</div>
+  <h1 class="auth-title">Run<span>Up</span></h1>
+  <p class="auth-sub">From first walk to 10K finish line. Your personal coach, powered by Google Fit.</p>
+  <div class="cid-group">
+    <label>Google OAuth Client ID</label>
+    <input type="text" id="cid-input" placeholder="xxxx.apps.googleusercontent.com">
+  </div>
+  <button class="btn-signin" onclick="startAuth()">
+    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#fff" opacity=".9" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.33 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#fff" opacity=".7" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#fff" opacity=".8" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#fff" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.67 14.62 48 24 48z"/></svg>
+    Connect Google Fit
+  </button>
+  <div class="setup-box">
+    <h4>📋 Paste these into Google Cloud Console</h4>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:2px">Authorized JavaScript origins:</div>
+    <code id="origin-display">loading…</code>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:2px">Authorized redirect URIs:</div>
+    <code id="redirect-display">loading…</code>
+    <ol>
+      <li>Enable <strong style="color:var(--text)">Fitness API</strong> in <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a></li>
+      <li>OAuth consent screen → External → add yourself as test user</li>
+      <li>Credentials → OAuth Client ID → paste both URLs above</li>
+      <li>Wait 2 min → sign in above</li>
+    </ol>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="brand">
+      <span class="brand-icon">🏃</span>
+      <span class="brand-name">Run<span>Up</span></span>
+    </div>
+    <div class="topbar-right">
+      <div class="xp-pill">⚡ <span id="topbar-xp">0</span> XP</div>
+      <button class="sync-btn" id="sync-btn" onclick="syncAll()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        Sync
+      </button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showPane('today',this)">Today</button>
+    <button class="tab" onclick="showPane('rewards',this)">Rewards</button>
+    <button class="tab" onclick="showPane('journey',this)">Journey</button>
+    <button class="tab" onclick="showPane('plan',this)">Plan</button>
+    <button class="tab" onclick="showPane('analysis',this)">Stats</button>
+  </div>
+
+  <!-- TODAY -->
+  <div class="pane active" id="pane-today">
+    <div class="err-banner" id="err-banner"></div>
+
+    <div class="hero">
+      <div class="hero-top">
+        <div class="hero-left">
+          <div class="hero-phase" id="hero-phase">Week 1 · Foundation</div>
+          <div class="hero-title" id="hero-title">Start Walking 🚶</div>
+          <div class="hero-sub" id="hero-sub">Build the habit before the speed. Walk 20–30 min today — that's your entire job.</div>
+        </div>
+        <div class="hero-ring">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="7"/>
+            <circle id="ring-arc" cx="40" cy="40" r="32" fill="none" stroke="var(--orange)" stroke-width="7" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201"/>
+          </svg>
+          <div class="hero-ring-inner">
+            <div class="hero-ring-pct" id="ring-pct">0%</div>
+            <div class="hero-ring-label">to 10K</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-track">
+        <div class="hero-track-bar">
+          <div class="hero-track-fill" id="hero-fill" style="width:0%"></div>
+        </div>
+        <div class="hero-track-meta">
+          <span>Day <span id="hero-daynum">2</span> of 56</span>
+          <span id="hero-weekgoal">Goal: 20 min walk</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-chip">📅 Day <span id="chip-day">2</span> &nbsp;·&nbsp; <span id="chip-date"></span></div>
+
+    <div class="mission">
+      <div class="mission-hdr">
+        <div class="mission-title">🎯 Today's Mission</div>
+        <div class="mission-pts">+<span id="total-task-pts">0</span> XP available</div>
+      </div>
+      <div id="mission-tasks"></div>
+    </div>
+
+    <div class="sec">Today from Google Fit</div>
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat"><span class="stat-icon">👟</span><div class="stat-label">Steps</div><div class="stat-value" id="s-steps">—</div><div class="stat-sub" id="s-steps-sub">Syncing…</div><div class="stat-bar"><div class="stat-fill" id="s-steps-bar" style="width:0%;background:var(--orange)"></div></div></div>
+      <div class="stat"><span class="stat-icon">🚶</span><div class="stat-label">Distance</div><div class="stat-value" id="s-dist">—<span class="stat-unit">km</span></div><div class="stat-sub" id="s-dist-sub">Goal: 2 km</div><div class="stat-bar"><div class="stat-fill" id="s-dist-bar" style="width:0%;background:var(--green)"></div></div></div>
+      <div class="stat"><span class="stat-icon">🔥</span><div class="stat-label">Calories</div><div class="stat-value" id="s-cal">—<span class="stat-unit">kcal</span></div><div class="stat-sub">Active burn</div></div>
+      <div class="stat"><span class="stat-icon">😴</span><div class="stat-label">Sleep</div><div class="stat-value" id="s-sleep">—<span class="stat-unit">hrs</span></div><div class="stat-sub" id="s-sleep-sub">Target: 7.5h+</div><div class="stat-bar"><div class="stat-fill" id="s-sleep-bar" style="width:0%;background:var(--purple)"></div></div></div>
+    </div>
+
+    <!-- HEART RATE -->
+    <div class="sec">Heart Rate</div>
+    <div class="hr-card">
+      <div class="hr-card-hdr">
+        <div class="hr-card-title"><span class="heartbeat">❤️</span> Heart Rate</div>
+        <button class="hr-manual-btn" onclick="toggleHrPanel()">+ Log manually</button>
+      </div>
+      <div class="hr-display">
+        <div class="hr-bpm" id="hr-bpm">—</div>
+        <div class="hr-unit">bpm</div>
+      </div>
+      <div class="hr-status" id="hr-status" style="color:var(--text3)">No HR data from Fit — log manually below or connect a wearable.</div>
+      <div class="hr-zones" id="hr-zones" style="display:none">
+        <div class="zone"><div class="zone-label">Zone 1 Recovery</div><div class="zone-bar"><div class="zone-fill" id="z1" style="width:0%;background:#00d68f"></div></div><div class="zone-pct" id="z1p">0%</div></div>
+        <div class="zone"><div class="zone-label">Zone 2 Aerobic</div><div class="zone-bar"><div class="zone-fill" id="z2" style="width:0%;background:#4d9fff"></div></div><div class="zone-pct" id="z2p">0%</div></div>
+        <div class="zone"><div class="zone-label">Zone 3 Tempo</div><div class="zone-bar"><div class="zone-fill" id="z3" style="width:0%;background:#fbbf24"></div></div><div class="zone-pct" id="z3p">0%</div></div>
+        <div class="zone"><div class="zone-label">Zone 4 Hard</div><div class="zone-bar"><div class="zone-fill" id="z4" style="width:0%;background:#fb923c"></div></div><div class="zone-pct" id="z4p">0%</div></div>
+        <div class="zone"><div class="zone-label">Zone 5 Max</div><div class="zone-bar"><div class="zone-fill" id="z5" style="width:0%;background:#f87171"></div></div><div class="zone-pct" id="z5p">0%</div></div>
+      </div>
+      <div class="hr-manual-panel" id="hr-panel">
+        <div class="hr-input-row">
+          <input type="number" class="hr-input" id="hr-input" placeholder="e.g. 72" min="30" max="220">
+          <button class="hr-save" onclick="saveHR()">Save</button>
+        </div>
+        <div class="hr-hint">
+          💡 <strong>How to measure:</strong> Open Google Fit app → tap the ❤️ Heart Rate card → place finger on rear camera for 30 sec → note the reading and enter above.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">Steps this week</div>
+    <div class="chart-card"><div class="chart-wrap"><canvas id="stepsChart"></canvas></div></div>
+
+    <div class="sec">Coaching</div>
+    <div class="tip-card" id="tips-card">
+      <div style="color:var(--text3);font-size:13px;padding:.5rem 0">Syncing your data…</div>
+    </div>
+  </div>
+
+  <!-- REWARDS -->
+  <div class="pane" id="pane-rewards">
+    <div class="xp-hero">
+      <div class="xp-hero-top">
+        <div>
+          <div class="xp-level" id="xp-level-label">Level 1</div>
+          <div class="xp-title" id="xp-rank">Rookie Walker</div>
+          <div class="xp-sub" id="xp-next-label">Keep moving to level up!</div>
+        </div>
+        <div class="xp-big" id="xp-big">0</div>
+      </div>
+      <div class="xp-bar-wrap">
+        <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
+        <div class="xp-bar-meta"><span>0 XP</span><span id="xp-next-val">500 XP to next level</span></div>
+      </div>
+    </div>
+
+    <div class="streak-card">
+      <div class="streak-flame" id="streak-flame">🔥</div>
+      <div class="streak-info">
+        <div class="streak-count" id="streak-count">0</div>
+        <div class="streak-label">Day streak</div>
+        <div class="streak-sub" id="streak-sub">Complete today's mission to start your streak!</div>
+      </div>
+    </div>
+
+    <div class="sec">Badges</div>
+    <div class="badges-grid" id="badges-grid"></div>
+
+    <div class="sec">Points log</div>
+    <div class="recent-points" id="points-log">
+      <div style="color:var(--text3);font-size:13px;padding:.5rem 0;text-align:center">No points yet — complete today's mission!</div>
+    </div>
+  </div>
+
+  <!-- JOURNEY -->
+  <div class="pane" id="pane-journey">
+    <div class="sec">Your road to 10K</div>
+    <div class="journey-list" id="journey-list"></div>
+    <div class="sec">Weekly steps</div>
+    <div class="chart-card"><div class="chart-wrap"><canvas id="weekChart"></canvas></div></div>
+  </div>
+
+  <!-- PLAN -->
+  <div class="pane" id="pane-plan">
+    <div style="background:var(--orange-gl);border:1px solid rgba(255,107,43,.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text2);">
+      <strong style="color:var(--orange)">You are on Day <span id="plan-daynum">2</span>.</strong> The plan starts with walks only. Running begins Week 3. Do not rush — every easy day is building the foundation.
+    </div>
+    <div id="plan-container"></div>
+  </div>
+
+  <!-- ANALYSIS -->
+  <div class="pane" id="pane-analysis">
+    <div class="sec">Steps trend</div>
+    <div class="chart-card"><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div>
+    <div class="sec">Sleep quality</div>
+    <div class="chart-card"><div class="chart-wrap"><canvas id="sleepChart"></canvas></div></div>
+    <div class="sec">Race prediction</div>
+    <div class="hr-card" id="pred-card">
+      <div style="color:var(--text3);font-size:13px;text-align:center;padding:.5rem">Sync data to see prediction</div>
+    </div>
+    <div class="sec">Account</div>
+    <div class="hr-card" style="padding:14px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <img id="prof-img" src="" style="width:42px;height:42px;border-radius:50%;display:none;object-fit:cover">
+        <div id="prof-ph" style="width:42px;height:42px;border-radius:50%;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0"></div>
+        <div><div id="prof-name" style="font-size:14px;font-weight:600">—</div><div id="prof-email" style="font-size:12px;color:var(--text2)">—</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--text3)">Last synced: <span id="last-sync">never</span></div>
+    </div>
+    <button onclick="signOut()" style="width:100%;background:transparent;border:1.5px solid rgba(248,113,113,.3);border-radius:var(--radius);padding:12px;font-size:14px;color:var(--red);cursor:pointer;font-weight:700;margin-top:6px;font-family:var(--font);">Sign out</button>
+  </div>
+</div>
+
+<!-- CELEBRATE -->
+<div class="celebrate" id="celebrate">
+  <div class="celebrate-popup">
+    <span class="celebrate-emoji" id="cel-emoji">🏆</span>
+    <div class="celebrate-title" id="cel-title">Goal Smashed!</div>
+    <div class="celebrate-sub" id="cel-sub">Keep this up and 10K is yours.</div>
+    <div class="celebrate-pts" id="cel-pts">+50 XP</div>
+    <button class="celebrate-dismiss" onclick="dismissCelebrate()">Let's go! 🚀</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONSTANTS ────────────────────────────────────────
+const START_DATE = new Date('2026-06-28');
+const CLIENT_ID_KEY = 'runup_cid';
+const STORE_KEY = 'runup_store';
+
+const SCOPES = [
+  'https://www.googleapis.com/auth/fitness.activity.read',
+  'https://www.googleapis.com/auth/fitness.heart_rate.read',
+  'https://www.googleapis.com/auth/fitness.sleep.read',
+  'https://www.googleapis.com/auth/userinfo.profile',
+  'https://www.googleapis.com/auth/userinfo.email',
+].join(' ');
+
+// ─── PLAN DATA ────────────────────────────────────────
+const PLAN = [
+  { week:1, name:'Walk Every Day', badge:'walk', bc:'wbadge-walk', emoji:'🚶', goal:'20–30 min walk daily. No running. Build the habit.', km:'~14 km/week',
+    days:[{d:'Mon',t:'20 min easy walk',dist:'~1.5 km',done:true},{d:'Tue',t:'25 min easy walk',dist:'~2 km',today:true},{d:'Wed',t:'25 min walk',dist:'~2 km'},{d:'Thu',t:'30 min walk',dist:'~2.5 km'},{d:'Fri',t:'Rest or stretch',dist:'—'},{d:'Sat',t:'35 min walk',dist:'~3 km'},{d:'Sun',t:'Full rest',dist:'—'}]},
+  { week:2, name:'Walk Faster', badge:'walk', bc:'wbadge-walk', emoji:'🚶‍♂️', goal:'Brisk walk 30–40 min at 4–5 km/hr. Feel slightly breathless.', km:'~22 km/week',
+    days:[{d:'Mon',t:'30 min brisk walk',dist:'~2.5 km'},{d:'Tue',t:'35 min brisk walk',dist:'~3 km'},{d:'Wed',t:'Rest / stretch',dist:'—'},{d:'Thu',t:'40 min brisk walk',dist:'~3.5 km'},{d:'Fri',t:'20 min easy walk',dist:'~1.5 km'},{d:'Sat',t:'45 min brisk walk',dist:'~4 km'},{d:'Sun',t:'Rest',dist:'—'}]},
+  { week:3, name:'First Jog Intervals', badge:'walk-run', bc:'wbadge-walkrun', emoji:'🏃', goal:'Walk 4 min, jog 1 min × 4. Total 20 min. Do not worry about pace.', km:'~18 km/week',
+    days:[{d:'Mon',t:'Walk 4 + Jog 1 min × 4',dist:'~2.5 km'},{d:'Tue',t:'30 min brisk walk',dist:'~2.5 km'},{d:'Wed',t:'Walk 4 + Jog 1 × 4',dist:'~2.5 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Walk 4 + Jog 1 × 5',dist:'~3 km'},{d:'Sat',t:'35 min brisk walk',dist:'~3 km'},{d:'Sun',t:'Rest',dist:'—'}]},
+  { week:4, name:'More Running', badge:'walk-run', bc:'wbadge-walkrun', emoji:'🏃', goal:'Walk 3 min, jog 2 min × 5. You are now running 10 min total!', km:'~20 km/week', days:[{d:'Mon',t:'Walk 3 + Jog 2 × 5',dist:'~3 km'},{d:'Tue',t:'Brisk walk 30 min',dist:'~2.5 km'},{d:'Wed',t:'Walk 3 + Jog 2 × 5',dist:'~3 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Walk 3 + Jog 2 × 6',dist:'~3.5 km'},{d:'Sat',t:'40 min easy walk',dist:'~3.5 km'},{d:'Sun',t:'Rest',dist:'—'}]},
+  { week:5, name:'Run-Walk-Run', badge:'walk-run', bc:'wbadge-walkrun', emoji:'🏃‍♂️', goal:'Jog 5 min, walk 2 min × 4. Total 28 min. Conversational pace.', km:'~24 km/week', days:[{d:'Mon',t:'Jog 5 + Walk 2 × 3',dist:'~3.5 km'},{d:'Tue',t:'Walk 35 min',dist:'~3 km'},{d:'Wed',t:'Jog 5 + Walk 2 × 4',dist:'~4 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Jog 5 + Walk 2 × 4',dist:'~4 km'},{d:'Sat',t:'Long walk-run 45 min',dist:'~5 km'},{d:'Sun',t:'Rest',dist:'—'}]},
+  { week:6, name:'First Continuous Run', badge:'run', bc:'wbadge-run', emoji:'🏃', goal:'Run 20 min non-stop. Slow is totally fine — just keep moving!', km:'~26 km/week', days:[{d:'Mon',t:'Run 15 min easy',dist:'~2.5 km'},{d:'Tue',t:'Brisk walk 30 min',dist:'~2.5 km'},{d:'Wed',t:'Run 20 min easy',dist:'~3 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Run 20 min easy',dist:'~3 km'},{d:'Sat',t:'Long run 25 min',dist:'~4 km'},{d:'Sun',t:'Rest',dist:'—'}]},
+  { week:7, name:'Build to 5K', badge:'run', bc:'wbadge-run', emoji:'🏃‍♂️', goal:'Run 30–35 min without stopping. You are running 5K!', km:'~30 km/week', days:[{d:'Mon',t:'Run 25 min easy',dist:'~3.5 km'},{d:'Tue',t:'Walk + light jog 30 min',dist:'~2.5 km'},{d:'Wed',t:'Run 30 min easy',dist:'~4.5 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Run 25 min',dist:'~3.5 km'},{d:'Sat',t:'Long run 35 min',dist:'~5 km'},{d:'Sun',t:'Rest',dist:'—'}]},
+  { week:8, name:'Race Week 🏁', badge:'race', bc:'wbadge-race', emoji:'🏆', goal:'Taper. Rest. Trust your training. Race day: just finish!', km:'10K Race!', days:[{d:'Mon',t:'Easy 20 min jog',dist:'~3 km'},{d:'Tue',t:'Rest',dist:'—'},{d:'Wed',t:'Easy 15 min jog',dist:'~2 km'},{d:'Thu',t:'Full rest',dist:'—'},{d:'Fri',t:'10 min shakeout',dist:'~1 km'},{d:'Sat',t:'Rest & prepare',dist:'—'},{d:'Sun',t:'🏆 RACE DAY — 10K!',dist:'10 km'}]},
+];
+
+const MISSIONS_BY_WEEK = [
+  [{text:'Walk 20–30 minutes outside',meta:'~2,000–3,000 steps',pts:40},{text:'Drink 2 litres of water today',meta:'Hydration = recovery',pts:20},{text:'Sleep 7.5+ hours tonight',meta:'Log in Google Fit',pts:30}],
+  [{text:'Brisk walk 30–40 min — slightly breathless',meta:'~3,500–4,500 steps',pts:45},{text:'Stretch calves + hamstrings after walk',meta:'5 min cooldown',pts:20},{text:'Drink 2.5 litres water',meta:'Your body is adapting',pts:15}],
+  [{text:'Walk 4 min → Jog 1 min → repeat 4×',meta:'First run intervals!',pts:60},{text:'Jog slow enough to speak full sentences',meta:'This builds your aerobic base',pts:20},{text:'Note any pain or discomfort',meta:'Rest immediately if you feel knee/shin pain',pts:10}],
+  [{text:'Walk 3 min → Jog 2 min → repeat 5×',meta:'10 min running total!',pts:70},{text:'Hydrate 500ml before + after session',meta:'Prevents cramps',pts:20},{text:'Log your HR after the jog',meta:'Watch it drop week by week',pts:20}],
+  [{text:'Jog 5 min → Walk 2 min → repeat 4×',meta:'28 min total',pts:80},{text:'Practice 3-in 2-out breathing rhythm',meta:'Reduces side stitches',pts:15},{text:'Log workout in Google Fit',meta:'Build your history',pts:15}],
+  [{text:'Run 20 min non-stop at easy pace',meta:'Your biggest milestone yet!',pts:100},{text:'Do NOT check your pace — just finish',meta:'Speed comes later',pts:20},{text:'Stretch or foam roll 10 min after',meta:'Prevent DOMS',pts:20}],
+  [{text:'Run 30–35 min easy — that is 5K!',meta:'Halfway to race distance',pts:100},{text:'Practice race-day nutrition: light meal 2hrs before',meta:'Avoid stomach issues on race day',pts:20},{text:'Rest & sleep 8h tonight',meta:'Almost race week!',pts:20}],
+  [{text:'Easy 20 min jog — keep legs fresh',meta:'Do NOT over-train this week',pts:50},{text:'Plan race day: route, timing, kit, food',meta:'Preparation = confidence',pts:30},{text:'Sleep 8+ hours every night this week',meta:'Performance depends on sleep',pts:40}],
+];
+
+const BADGE_DEFS = [
+  {id:'first_step',icon:'👟',name:'First Steps',desc:'Complete Day 1',pts:50,condition:s=>s.totalDays>=1},
+  {id:'week1',icon:'🚶',name:'Walker',desc:'Finish Week 1',pts:100,condition:s=>s.totalDays>=7},
+  {id:'first_jog',icon:'🏃',name:'First Jog',desc:'Complete Week 3 Day 1',pts:150,condition:s=>s.totalDays>=15},
+  {id:'week4',icon:'💪',name:'Half Way',desc:'Reach Week 4',pts:200,condition:s=>s.totalDays>=22},
+  {id:'run20',icon:'⚡',name:'Non-Stop 20',desc:'First 20 min run',pts:250,condition:s=>s.totalDays>=36},
+  {id:'5k',icon:'🎽',name:'5K Runner',desc:'Complete Week 7',pts:300,condition:s=>s.totalDays>=43},
+  {id:'streak7',icon:'🔥',name:'On Fire',desc:'7-day streak',pts:200,condition:s=>s.streak>=7},
+  {id:'streak14',icon:'🌟',name:'Unstoppable',desc:'14-day streak',pts:400,condition:s=>s.streak>=14},
+  {id:'race',icon:'🏆',name:'Finisher',desc:'Race week!',pts:500,condition:s=>s.totalDays>=50},
+];
+
+const LEVELS = [
+  {lvl:1,name:'Rookie Walker',min:0,max:500},
+  {lvl:2,name:'Pavement Explorer',min:500,max:1200},
+  {lvl:3,name:'Consistent Mover',min:1200,max:2500},
+  {lvl:4,name:'Jogger Rising',min:2500,max:4500},
+  {lvl:5,name:'5K Warrior',min:4500,max:7000},
+  {lvl:6,name:'Distance Chaser',min:7000,max:10000},
+  {lvl:7,name:'10K Athlete',min:10000,max:99999},
+];
+
+// ─── STATE ────────────────────────────────────────────
+let CLIENT_ID = localStorage.getItem(CLIENT_ID_KEY) || '';
+let accessToken = sessionStorage.getItem('runup_token') || null;
+let fitData = { labels:[], steps:[], sleep:[], calories:[], hr:null };
+let charts = {};
+
+function loadStore() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { return {}; }
+}
+function saveStore(s) { localStorage.setItem(STORE_KEY, JSON.stringify(s)); }
+
+function getDayNumber() {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const start = new Date(START_DATE); start.setHours(0,0,0,0);
+  return Math.max(1, Math.floor((now - start) / 86400000) + 1);
+}
+function getWeek() { return Math.min(8, Math.ceil(getDayNumber() / 7)); }
+
+// ─── INIT ─────────────────────────────────────────────
+window.onload = () => {
+  document.getElementById('cid-input').value = CLIENT_ID;
+  const origin = window.location.origin;
+  const redir = (origin + window.location.pathname).replace(/\/$/, '');
+  document.getElementById('origin-display').textContent = origin;
+  document.getElementById('redirect-display').textContent = redir;
+
+  const hash = window.location.hash;
+  if (hash.includes('access_token=')) {
+    const p = new URLSearchParams(hash.substring(1));
+    accessToken = p.get('access_token');
+    sessionStorage.setItem('runup_token', accessToken);
+    window.history.replaceState({}, '', window.location.pathname);
+    showApp();
+  } else if (accessToken) {
+    showApp();
+  }
+};
+
+// ─── AUTH ─────────────────────────────────────────────
+function startAuth() {
+  CLIENT_ID = document.getElementById('cid-input').value.trim();
+  if (!CLIENT_ID) { showToast('Paste your Client ID first'); return; }
+  localStorage.setItem(CLIENT_ID_KEY, CLIENT_ID);
+  const redir = (window.location.origin + window.location.pathname).replace(/\/$/, '');
+  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(CLIENT_ID)}&redirect_uri=${encodeURIComponent(redir)}&response_type=token&scope=${encodeURIComponent(SCOPES)}&prompt=select_account`;
+}
+function signOut() {
+  sessionStorage.removeItem('runup_token');
+  accessToken = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth').style.display = 'flex';
+  showToast('Signed out');
+}
+
+function showApp() {
+  document.getElementById('auth').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  initUI();
+  syncAll();
+}
+
+// ─── UI INIT ──────────────────────────────────────────
+function initUI() {
+  const day = getDayNumber(), week = getWeek();
+  const pct = Math.round(day / 56 * 100);
+
+  // Hero
+  const phases = ['Week 1 · Foundation','Week 2 · Build Habit','Week 3 · First Jogs','Week 4 · More Running','Week 5 · Run-Walk-Run','Week 6 · Continuous Run','Week 7 · Build to 5K','Week 8 · Race Week'];
+  const titles = ['Start Walking 🚶','Brisk Walking 🚶‍♂️','First Run Intervals 🏃','More Jogging Time 🏃','Longer Running Blocks 🏃‍♂️','First Non-Stop Run 🏃','Build to 5K 🏃‍♂️','Race Week 🏆'];
+  const subs = ['Walk 20–30 min daily. No running. Build the habit first — the race comes later.','Brisk walks 30–40 min. Slightly breathless = perfect pace.','Walk 4 min, jog 1 min. Your very first running session!','Walk 3 min, jog 2 min. You\'re now running 10 min total!','Jog 5 min, walk 2 min. Getting stronger every day!','First 20 min continuous run. Your biggest milestone yet!','Build to a 30–35 min run — that\'s your 5K!','Taper, rest, and trust your training. Race day is here!'];
+  const goals = ['Goal: 20 min walk','Goal: 30 min brisk walk','Goal: 4×(walk 4 + jog 1)','Goal: 5×(walk 3 + jog 2)','Goal: 4×(jog 5 + walk 2)','Goal: 20 min non-stop run','Goal: 30–35 min run','Goal: Complete the 10K!'];
+
+  document.getElementById('hero-phase').textContent = phases[week-1];
+  document.getElementById('hero-title').textContent = titles[week-1];
+  document.getElementById('hero-sub').textContent = subs[week-1];
+  document.getElementById('hero-weekgoal').textContent = goals[week-1];
+  document.getElementById('hero-fill').style.width = pct + '%';
+  document.getElementById('hero-daynum').textContent = day;
+  document.getElementById('chip-day').textContent = day;
+  document.getElementById('plan-daynum').textContent = day;
+
+  const now = new Date();
+  document.getElementById('chip-date').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+
+  // Ring animation
+  setTimeout(() => {
+    const offset = 201 - (201 * pct / 100);
+    document.getElementById('ring-arc').style.strokeDashoffset = offset;
+    document.getElementById('ring-pct').textContent = pct + '%';
+  }, 400);
+
+  renderMission();
+  renderRewards();
+  renderJourney();
+  renderPlan();
+
+  // Restore saved HR
+  const store = loadStore();
+  if (store.manualHR) showHR(store.manualHR, true);
+}
+
+// ─── MISSION ──────────────────────────────────────────
+function renderMission() {
+  const week = getWeek(), day = getDayNumber();
+  const tasks = MISSIONS_BY_WEEK[week-1];
+  const store = loadStore();
+  const checks = store.checks || {};
+  const dayKey = `d${day}`;
+  let totalPts = tasks.reduce((a,t) => a+t.pts, 0);
+  document.getElementById('total-task-pts').textContent = totalPts;
+  document.getElementById('mission-tasks').innerHTML = tasks.map((t,i) => {
+    const key = `${dayKey}_${i}`;
+    const done = checks[key] || false;
+    return `<div class="task">
+      <div class="task-chk ${done?'done':''}" onclick="toggleTask(${i})" id="tc-${i}">${done?'✓':''}</div>
+      <div class="task-body"><div class="task-text">${t.text}</div><div class="task-meta">${t.meta}</div></div>
+      <div class="task-pts">+${t.pts} XP</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleTask(i) {
+  const week = getWeek(), day = getDayNumber();
+  const tasks = MISSIONS_BY_WEEK[week-1];
+  const store = loadStore();
+  if (!store.checks) store.checks = {};
+  if (!store.points_log) store.points_log = [];
+  const key = `d${day}_${i}`;
+  const wasDone = store.checks[key] || false;
+  store.checks[key] = !wasDone;
+  const el = document.getElementById(`tc-${i}`);
+  el.classList.toggle('done', store.checks[key]);
+  el.textContent = store.checks[key] ? '✓' : '';
+
+  if (store.checks[key]) {
+    const pts = tasks[i].pts;
+    store.totalXP = (store.totalXP || 0) + pts;
+    store.points_log.unshift({ desc: tasks[i].text, pts, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) });
+    if (store.points_log.length > 20) store.points_log.pop();
+
+    // Check streak
+    const todayStr = new Date().toDateString();
+    if (store.lastActiveDay !== todayStr) {
+      const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+      store.streak = store.lastActiveDay === yesterday.toDateString() ? (store.streak||0)+1 : 1;
+      store.lastActiveDay = todayStr;
+    }
+    store.totalDays = getDayNumber();
+
+    // Check all tasks done today
+    const allDone = tasks.every((_,idx) => store.checks[`d${day}_${idx}`]);
+    if (allDone) {
+      setTimeout(() => celebrate('🎯','Mission Complete!',`All tasks done for today. You earned ${tasks.reduce((a,t)=>a+t.pts,0)} XP!`, tasks.reduce((a,t)=>a+t.pts,0)), 300);
+      store.streak = Math.max(store.streak||1, 1);
+    } else {
+      showToast(`+${pts} XP earned! 🔥`);
+    }
+    saveStore(store);
+    renderRewards();
+  } else {
+    // Deduct
+    store.totalXP = Math.max(0, (store.totalXP||0) - tasks[i].pts);
+    saveStore(store);
+    renderRewards();
+    showToast('Task unchecked');
+  }
+}
+
+// ─── REWARDS ──────────────────────────────────────────
+function renderRewards() {
+  const store = loadStore();
+  const xp = store.totalXP || 0;
+  const streak = store.streak || 0;
+  const totalDays = getDayNumber();
+
+  // Level
+  const level = LEVELS.find(l => xp >= l.min && xp < l.max) || LEVELS[LEVELS.length-1];
+  const nextLevel = LEVELS.find(l => l.min > xp);
+  const pct = nextLevel ? Math.round((xp - level.min) / (nextLevel.min - level.min) * 100) : 100;
+
+  document.getElementById('topbar-xp').textContent = xp;
+  document.getElementById('xp-big').textContent = xp;
+  document.getElementById('xp-level-label').textContent = `Level ${level.lvl}`;
+  document.getElementById('xp-rank').textContent = level.name;
+  document.getElementById('xp-next-label').textContent = nextLevel ? `${nextLevel.min - xp} XP to next level` : 'Max level reached! 🏆';
+  document.getElementById('xp-next-val').textContent = nextLevel ? `${nextLevel.min} XP` : 'MAX';
+  document.getElementById('xp-bar').style.width = pct + '%';
+
+  // Streak
+  document.getElementById('streak-count').textContent = streak;
+  document.getElementById('streak-flame').textContent = streak >= 7 ? '🔥🔥🔥' : streak >= 3 ? '🔥🔥' : '🔥';
+  document.getElementById('streak-sub').textContent = streak === 0 ? 'Complete today\'s mission to start your streak!'
+    : streak === 1 ? 'Day 1 done! Come back tomorrow to keep it going.'
+    : `${streak} days strong! Don't break the chain!`;
+
+  // Badges
+  const earned = BADGE_DEFS.filter(b => b.condition({ totalDays, streak }));
+  const earnedIds = new Set(earned.map(b => b.id));
+  document.getElementById('badges-grid').innerHTML = BADGE_DEFS.map(b => `
+    <div class="badge-item ${earnedIds.has(b.id)?'earned':''}">
+      <span class="badge-icon">${b.icon}</span>
+      <div class="badge-name">${b.name}</div>
+      <div class="badge-pts">+${b.pts} XP</div>
+    </div>`).join('');
+
+  // Points log
+  const log = store.points_log || [];
+  document.getElementById('points-log').innerHTML = log.length ? log.map(e => `
+    <div class="pt-row">
+      <div><div class="pt-desc">${e.desc.length > 35 ? e.desc.slice(0,35)+'…' : e.desc}</div><div class="pt-time">${e.time}</div></div>
+      <div class="pt-val">+${e.pts}</div>
+    </div>`).join('') : '<div style="color:var(--text3);font-size:13px;padding:.5rem 0;text-align:center">No points yet — complete today\'s mission!</div>';
+}
+
+// ─── JOURNEY ──────────────────────────────────────────
+function renderJourney() {
+  const week = getWeek();
+  document.getElementById('journey-list').innerHTML = PLAN.map((p,i) => {
+    const st = i < week-1 ? 'done' : i===week-1 ? 'active' : 'locked';
+    const sc = st==='done'?'var(--green)':st==='active'?'var(--orange)':'var(--text3)';
+    const sl = st==='done'?'✅ Completed':st==='active'?'📍 You are here':'🔒 Week '+p.week;
+    return `<div class="ms"><div class="ms-dot ${st}">${p.emoji}</div>
+      <div class="ms-info"><div class="ms-status" style="color:${sc}">${sl}</div>
+      <div class="ms-name">${p.name}</div><div class="ms-desc">${p.goal}</div>
+      <div class="ms-km">${p.km}</div></div></div>`;
+  }).join('');
+}
+
+// ─── PLAN ─────────────────────────────────────────────
+function renderPlan() {
+  const week = getWeek();
+  document.getElementById('plan-container').innerHTML = PLAN.map((p,wi) => {
+    const isActive = wi===week-1, isPast = wi<week-1;
+    return `<div class="week-block">
+      <div class="week-hdr">
+        <div class="week-hdr-name">${isPast?'✅ ':isActive?'📍 ':'🔒 '}Week ${p.week} — ${p.name}</div>
+        <span class="wbadge ${p.bc}">${p.badge}</span>
+      </div>
+      ${isActive||isPast?`<div class="week-card">${p.days.map(d=>`<div class="day-row">
+        <div class="day-n">${d.d}</div><div class="day-t">${d.t}</div>
+        <div class="day-d">${d.dist}</div>
+        <div class="chk ${d.today?'chk-t':d.done?'chk-y':'chk-n'}">${d.today?'▶':d.done?'✓':'·'}</div>
+      </div>`).join('')}</div>`:''}</div>`;
+  }).join('');
+}
+
+// ─── SYNC ─────────────────────────────────────────────
+async function syncAll() {
+  const btn = document.getElementById('sync-btn');
+  btn.classList.add('spin');
+  showErr('');
+  try {
+    const now = Date.now(), day = 86400000;
+    const [user, steps, cal, sleep, hr] = await Promise.all([
+      getUser(),
+      fitPost('com.google.step_count.delta', now-7*day, now),
+      fitPost('com.google.calories.expended', now-7*day, now),
+      fitPost('com.google.sleep.segment', now-7*day, now),
+      fitPost('com.google.heart_rate.bpm', now-7*day, now),
+    ]);
+    renderProfile(user);
+    processData(steps, cal, sleep, hr);
+    document.getElementById('last-sync').textContent = new Date().toLocaleTimeString();
+    showToast('✓ Synced from Google Fit');
+  } catch(e) {
+    showErr(e.message);
+    showToast('Sync failed — check console');
+    console.error(e);
+  } finally { btn.classList.remove('spin'); }
+}
+
+async function fitPost(type, s, e) {
+  const r = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate',{
+    method:'POST', headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},
+    body:JSON.stringify({aggregateBy:[{dataTypeName:type}],bucketByTime:{durationMillis:86400000},startTimeMillis:s,endTimeMillis:e})
+  });
+  if(r.status===401){signOut();throw new Error('Token expired');}
+  if(!r.ok) throw new Error('Fit API '+r.status);
+  return r.json();
+}
+
+async function getUser() {
+  const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo',{headers:{Authorization:`Bearer ${accessToken}`}});
+  return r.json();
+}
+
+// ─── DATA PROCESSING ──────────────────────────────────
+function processData(stepsData, calData, sleepData, hrData) {
+  const labels=[], stepsArr=[], calArr=[], sleepArr=[], hrArr=[];
+  const day=86400000, now=Date.now();
+  for(let i=6;i>=0;i--){
+    const d=new Date(now-i*day);
+    labels.push(d.toLocaleDateString('en-US',{weekday:'short'}));
+    stepsArr.push(extractSum(stepsData.bucket[6-i],'intVal')||0);
+    calArr.push(Math.round(extractSum(calData.bucket[6-i],'fpVal'))||0);
+    sleepArr.push(extractSleepHrs(sleepData.bucket[6-i])||null);
+    hrArr.push(extractAvg(hrData.bucket[6-i],'fpVal')||null);
+  }
+  fitData={labels,steps:stepsArr,calories:calArr,sleep:sleepArr,hr:hrArr};
+
+  const todaySteps=stepsArr[6]||0, todayKm=parseFloat((todaySteps*0.00075).toFixed(1));
+  const todayCal=calArr[6]||0, todaySleep=sleepArr[5]||sleepArr[6]||null;
+  const fitHR = hrArr.filter(Boolean);
+  const avgHR = fitHR.length ? Math.round(fitHR.reduce((a,b)=>a+b,0)/fitHR.length) : null;
+  const todayHR = hrArr[6] || avgHR;
+
+  const week=getWeek();
+  const stepGoal=week<=2?4000:week<=4?6000:8000;
+  const distGoal=week<=2?2:week<=4?3.5:5;
+  const stepPct=Math.min(100,Math.round(todaySteps/stepGoal*100));
+  const distPct=Math.min(100,Math.round(todayKm/distGoal*100));
+
+  // Stats
+  const stepsEl=document.getElementById('s-steps');
+  stepsEl.innerHTML=todaySteps.toLocaleString()+'<span class="stat-unit"> steps</span>';
+  document.getElementById('s-steps-sub').textContent=`${stepPct}% of ${stepGoal.toLocaleString()} goal`;
+  document.getElementById('s-steps-bar').style.width=stepPct+'%';
+  if(stepPct>=100){document.getElementById('s-steps').closest('.stat').classList.add('goal-hit');awardGoalXP('steps',50,'Step goal crushed! 👟');}
+
+  document.getElementById('s-dist').innerHTML=todayKm+'<span class="stat-unit"> km</span>';
+  document.getElementById('s-dist-sub').textContent=`Goal: ${distGoal} km${distPct>=100?' ✅':''}`;
+  document.getElementById('s-dist-bar').style.width=distPct+'%';
+  if(distPct>=100) document.getElementById('s-dist').closest('.stat').classList.add('goal-hit');
+
+  document.getElementById('s-cal').innerHTML=(todayCal||'—')+'<span class="stat-unit">'+(todayCal?'kcal':'')+'</span>';
+
+  if(todaySleep){
+    document.getElementById('s-sleep').innerHTML=todaySleep.toFixed(1)+'<span class="stat-unit"> hrs</span>';
+    document.getElementById('s-sleep-sub').textContent=todaySleep>=7.5?'✅ Great recovery':'⚠️ Aim for 7.5h+';
+    document.getElementById('s-sleep-bar').style.width=Math.min(100,Math.round(todaySleep/8*100))+'%';
+    document.getElementById('s-sleep-bar').style.background=todaySleep>=7.5?'var(--green)':'var(--amber)';
+    if(todaySleep>=7.5) awardGoalXP('sleep',30,'Sleep goal achieved! 😴');
+  }
+
+  // HR from Fit
+  if(todayHR) showHR(todayHR, false);
+  else {
+    const store=loadStore();
+    if(store.manualHR) showHR(store.manualHR, true);
+  }
+
+  renderTips(todaySteps, todaySleep, stepGoal, todayHR);
+  renderCharts();
+  renderPrediction(stepsArr, week);
+}
+
+function extractSum(bucket,field){if(!bucket?.dataset)return 0;let s=0;bucket.dataset.forEach(ds=>ds.point?.forEach(p=>p.value?.forEach(v=>{s+=(v[field]||0);})));return Math.round(s);}
+function extractAvg(bucket,field){if(!bucket?.dataset)return null;let s=0,c=0;bucket.dataset.forEach(ds=>ds.point?.forEach(p=>p.value?.forEach(v=>{if(v[field]){s+=v[field];c++;}})));return c?Math.round(s/c):null;}
+function extractSleepHrs(bucket){if(!bucket?.dataset)return null;let ms=0;bucket.dataset.forEach(ds=>ds.point?.forEach(p=>{const s=parseInt(p.startTimeNanos)/1e6,e=parseInt(p.endTimeNanos)/1e6;if(!isNaN(s)&&!isNaN(e))ms+=(e-s);}));return ms?parseFloat((ms/3600000).toFixed(1)):null;}
+
+// ─── HEART RATE ───────────────────────────────────────
+function showHR(bpm, isManual) {
+  const maxHR = 190;
+  document.getElementById('hr-bpm').textContent = bpm;
+  const zones = [
+    { pct: bpm < 114 ? 80 : bpm < 133 ? 20 : 5, id: 'z1' },
+    { pct: bpm >= 114 && bpm < 133 ? 60 : bpm < 152 ? 15 : 5, id: 'z2' },
+    { pct: bpm >= 133 && bpm < 152 ? 55 : 5, id: 'z3' },
+    { pct: bpm >= 152 && bpm < 171 ? 55 : 5, id: 'z4' },
+    { pct: bpm >= 171 ? 60 : 3, id: 'z5' },
+  ];
+  const total = zones.reduce((a,z)=>a+z.pct,0);
+  zones.forEach(z=>{
+    const p=Math.round(z.pct/total*100);
+    document.getElementById(z.id).style.width=p+'%';
+    document.getElementById(z.id+'p').textContent=p+'%';
+  });
+  document.getElementById('hr-zones').style.display='flex';
+
+  let statusText='', statusColor='var(--text2)';
+  if(bpm<=60){statusText='🧘 Very low resting HR — excellent cardiovascular fitness!';statusColor='var(--green)';}
+  else if(bpm<=72){statusText='✅ Healthy resting HR — you\'re building a solid aerobic base.';statusColor='var(--green)';}
+  else if(bpm<=85){statusText='👍 Normal resting HR. It\'ll drop as your fitness improves.';statusColor='var(--text2)';}
+  else if(bpm<=100){statusText='⚠️ Elevated HR — rest, hydrate, or you may be fighting illness.';statusColor='var(--amber)';}
+  else{statusText='🚨 Very high HR — rest today and see a doctor if persistent.';statusColor='var(--red)';}
+
+  if(isManual) statusText = '(Manual entry) ' + statusText;
+  const statusEl = document.getElementById('hr-status');
+  statusEl.textContent = statusText;
+  statusEl.style.color = statusColor;
+}
+
+function toggleHrPanel() {
+  const p=document.getElementById('hr-panel');
+  p.style.display=p.style.display==='none'?'block':'none';
+}
+
+function saveHR() {
+  const val = parseInt(document.getElementById('hr-input').value);
+  if(!val||val<30||val>220){showToast('Enter a valid HR (30–220)');return;}
+  const store=loadStore();
+  store.manualHR=val;
+  if(!store.points_log)store.points_log=[];
+  store.totalXP=(store.totalXP||0)+20;
+  store.points_log.unshift({desc:'Logged heart rate manually',pts:20,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
+  saveStore(store);
+  showHR(val,true);
+  document.getElementById('hr-panel').style.display='none';
+  renderRewards();
+  showToast('+20 XP — HR logged! 💓');
+}
+
+// ─── AUTO XP FOR GOALS ────────────────────────────────
+function awardGoalXP(goalId, pts, msg) {
+  const store=loadStore();
+  const today=new Date().toDateString();
+  if(!store.goalAwards)store.goalAwards={};
+  if(store.goalAwards[`${today}_${goalId}`])return;
+  store.goalAwards[`${today}_${goalId}`]=true;
+  if(!store.points_log)store.points_log=[];
+  store.totalXP=(store.totalXP||0)+pts;
+  store.points_log.unshift({desc:msg,pts,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
+  saveStore(store);
+  renderRewards();
+}
+
+// ─── TIPS ─────────────────────────────────────────────
+function renderTips(steps, sleep, goal, hr) {
+  const w=getWeek(), tips=[];
+
+  if(steps===0) tips.push({ic:'👟',bg:'rgba(255,107,43,.1)',title:"Lace up — let's go!",body:"Not a single step logged yet today. Put on shoes, step outside for 10 minutes. That's all. The habit starts now."});
+  else if(steps<goal*0.4) tips.push({ic:'🚶',bg:'rgba(77,159,255,.1)',title:`${(goal-steps).toLocaleString()} steps to go`,body:"You're just getting started today. A 20 min walk will close most of that gap. The evening walk counts too!"});
+  else if(steps>=goal) tips.push({ic:'🎉',bg:'rgba(0,214,143,.1)',title:"Today's goal: DONE!",body:`${steps.toLocaleString()} steps — well above your target. This consistency is exactly what builds 10K fitness.`});
+  else tips.push({ic:'👟',bg:'rgba(77,159,255,.1)',title:`Halfway there — ${(goal-steps).toLocaleString()} to go`,body:"You're on track. A 15 min walk after dinner seals the deal. Walking after meals also helps digestion!"});
+
+  if(w===1) tips.push({ic:'💡',bg:'rgba(167,139,250,.1)',title:'Why no running yet?',body:'Running without a walking base causes 80% of beginner injuries (shin splints, knee pain). 2 weeks of walking builds tendons and joints that protect you when running begins. Trust the process!'});
+  if(w===2) tips.push({ic:'⚡',bg:'rgba(251,191,36,.1)',title:'Brisk walk = training',body:'Walking at 4–5 km/hr for 40 min burns similar calories to jogging for 20 min. It is genuinely hard training — do not underestimate it.'});
+  if(w>=3) tips.push({ic:'🏃',bg:'rgba(77,159,255,.1)',title:'Jog slow to run fast',body:'Run at a pace where you can speak a full sentence without gasping. That is Zone 2 — the zone that builds your engine. Speed will come naturally in weeks 6–8.'});
+
+  if(hr&&hr>85) tips.push({ic:'❤️',bg:'rgba(248,113,113,.1)',title:'Elevated HR today',body:`${hr} bpm is a bit high. Drink more water, reduce caffeine, and make today an easy walk only. Your body may be adapting to the new routine.`});
+  else if(hr&&hr<=72) tips.push({ic:'❤️',bg:'rgba(0,214,143,.1)',title:'Great resting HR!',body:`${hr} bpm — your heart is already getting stronger. As fitness builds, expect this to drop to the low 60s.`});
+  else if(!hr) tips.push({ic:'❤️',bg:'rgba(77,159,255,.1)',title:'Track your heart rate',body:'Open Google Fit → tap ❤️ Heart Rate → measure with your camera. Log it above. Watching your resting HR drop week by week is the most motivating fitness metric there is.'});
+
+  if(!sleep) tips.push({ic:'😴',bg:'rgba(167,139,250,.1)',title:'Sleep data missing',body:'Enable sleep tracking in Google Fit (or Fit-compatible app like Sleep as Android). Sleep is when your body actually builds fitness — it\'s not optional.'});
+  else if(sleep<7) tips.push({ic:'⚠️',bg:'rgba(251,191,36,.1)',title:'Sleep debt is real',body:`Only ${sleep}h last night. Less sleep = more cortisol = slower recovery = higher injury risk. Tonight: phone off 30 min early, aim for 8h.`});
+  else tips.push({ic:'😴',bg:'rgba(0,214,143,.1)',title:`${sleep}h sleep — excellent`,body:'Well rested means your muscles repaired overnight and your motivation will be higher today. Protect this habit fiercely.'});
+
+  document.getElementById('tips-card').innerHTML=tips.map(t=>`<div class="tip"><div class="tip-ic" style="background:${t.bg}">${t.ic}</div><div><div class="tip-title">${t.title}</div><div class="tip-body">${t.body}</div></div></div>`).join('');
+}
+
+// ─── CHARTS ───────────────────────────────────────────
+function renderCharts() {
+  const cfg = { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+    scales:{ x:{grid:{display:false},ticks:{color:'#5a5a72',font:{size:11}}}, y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5a5a72',font:{size:11}}} } };
+
+  if(charts.steps)charts.steps.destroy();
+  charts.steps=new Chart(document.getElementById('stepsChart').getContext('2d'),{type:'bar',
+    data:{labels:fitData.labels,datasets:[{data:fitData.steps,backgroundColor:fitData.steps.map((_,i)=>i===6?'#ff6b2b':'rgba(255,107,43,.3)'),borderRadius:6,borderSkipped:false}]},
+    options:{...cfg,scales:{...cfg.scales,y:{...cfg.scales.y,ticks:{...cfg.scales.y.ticks,callback:v=>(v/1000).toFixed(0)+'k'},min:0}},plugins:{...cfg.plugins,tooltip:{callbacks:{label:c=>c.parsed.y.toLocaleString()+' steps'}}}}});
+
+  if(charts.week)charts.week.destroy();
+  charts.week=new Chart(document.getElementById('weekChart').getContext('2d'),{type:'line',
+    data:{labels:fitData.labels,datasets:[{data:fitData.steps,borderColor:'#ff6b2b',backgroundColor:'rgba(255,107,43,.08)',tension:0.4,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#ff6b2b',fill:true,spanGaps:true}]},
+    options:{...cfg,scales:{...cfg.scales,y:{...cfg.scales.y,ticks:{...cfg.scales.y.ticks,callback:v=>(v/1000).toFixed(0)+'k'},min:0}},plugins:{...cfg.plugins,tooltip:{callbacks:{label:c=>c.parsed.y.toLocaleString()+' steps'}}}}});
+
+  if(charts.trend)charts.trend.destroy();
+  charts.trend=new Chart(document.getElementById('trendChart').getContext('2d'),{type:'bar',
+    data:{labels:fitData.labels,datasets:[{data:fitData.steps,backgroundColor:fitData.steps.map(v=>v>=6000?'#00d68f':v>=3000?'#4d9fff':'#ff6b2b'),borderRadius:6,borderSkipped:false}]},
+    options:{...cfg,scales:{...cfg.scales,y:{...cfg.scales.y,ticks:{...cfg.scales.y.ticks,callback:v=>(v/1000).toFixed(0)+'k'},min:0}},plugins:{...cfg.plugins,tooltip:{callbacks:{label:c=>c.parsed.y.toLocaleString()+' steps'}}}}});
+
+  if(charts.sleep)charts.sleep.destroy();
+  charts.sleep=new Chart(document.getElementById('sleepChart').getContext('2d'),{type:'bar',
+    data:{labels:fitData.labels,datasets:[{data:fitData.sleep,backgroundColor:fitData.sleep.map(v=>!v?'rgba(255,255,255,.04)':v>=7.5?'#00d68f':v>=6?'#fbbf24':'#f87171'),borderRadius:6,borderSkipped:false}]},
+    options:{...cfg,scales:{...cfg.scales,y:{...cfg.scales.y,min:0,max:10,ticks:{...cfg.scales.y.ticks,callback:v=>v+'h'}}},plugins:{...cfg.plugins,tooltip:{callbacks:{label:c=>(c.parsed.y||0).toFixed(1)+'h'}}}}});
+}
+
+function renderPrediction(stepsArr, week) {
+  const avgSteps=stepsArr.filter(Boolean).reduce((a,b)=>a+b,0)/Math.max(1,stepsArr.filter(Boolean).length);
+  const paces=[9.5,9,8.5,8,7.5,7,6.5,6];
+  const pace=paces[week-1];
+  const totalMin=pace*10;
+  const mm=Math.floor(totalMin),ss=Math.round((totalMin%1)*60).toString().padStart(2,'0');
+  const tMin=Math.max(50,totalMin-8);
+  const tm=Math.floor(tMin),ts=Math.round((tMin%1)*60).toString().padStart(2,'0');
+
+  document.getElementById('pred-card').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Current 10K estimate</div>
+        <div style="font-size:30px;font-weight:700;font-family:var(--mono);color:var(--blue)">${mm}:${ss}</div>
+        <div style="font-size:11px;color:var(--text3)">at week ${week} fitness</div></div>
+      <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Race day target</div>
+        <div style="font-size:30px;font-weight:700;font-family:var(--mono);color:var(--green)">${tm}:${ts}</div>
+        <div style="font-size:11px;color:var(--text3)">by week 8</div></div>
+    </div>
+    <div style="background:var(--orange-gl);border:1px solid rgba(255,107,43,.15);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2)">
+      📈 Each week you complete, your estimated finish time drops. Consistency beats speed every time.
+    </div>`;
+}
+
+// ─── PROFILE ──────────────────────────────────────────
+function renderProfile(u) {
+  document.getElementById('prof-name').textContent=u.name||'Runner';
+  document.getElementById('prof-email').textContent=u.email||'';
+  document.getElementById('prof-ph').textContent=(u.name||'R').charAt(0).toUpperCase();
+  if(u.picture){const img=document.getElementById('prof-img');img.src=u.picture;img.style.display='';document.getElementById('prof-ph').style.display='none';}
+}
+
+// ─── CELEBRATE ────────────────────────────────────────
+function celebrate(emoji, title, sub, pts) {
+  document.getElementById('cel-emoji').textContent=emoji;
+  document.getElementById('cel-title').textContent=title;
+  document.getElementById('cel-sub').textContent=sub;
+  document.getElementById('cel-pts').textContent='+'+pts+' XP';
+  document.getElementById('celebrate').classList.add('show');
+  launchConfetti();
+}
+function dismissCelebrate(){document.getElementById('celebrate').classList.remove('show');}
+function launchConfetti(){
+  const colors=['#ff6b2b','#fbbf24','#00d68f','#4d9fff','#a78bfa'];
+  for(let i=0;i<40;i++){
+    const el=document.createElement('div');
+    el.className='confetti-piece';
+    el.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};transform:rotate(${Math.random()*360}deg);animation-duration:${1+Math.random()*2}s;animation-delay:${Math.random()*0.5}s;`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),3000);
+  }
+}
+
+// ─── UI HELPERS ───────────────────────────────────────
+function showPane(name,btn){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('pane-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+function showErr(msg){const b=document.getElementById('err-banner');b.textContent=msg;b.style.display=msg?'block':'none';}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+</script>
+</body>
+</html>
