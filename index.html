@@ -395,27 +395,28 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
       <div class="hero-top">
         <div class="hero-left">
           <div class="hero-phase" id="hero-phase">Week 1 · Foundation</div>
-          <div class="hero-title" id="hero-title">Start Walking 🚶</div>
-          <div class="hero-sub" id="hero-sub">Build the habit before the speed. Walk 20–30 min today — that's your entire job.</div>
+          <div class="hero-title" id="hero-title">Loading your day…</div>
+          <div class="hero-sub" id="hero-sub">Fetching your activity from Google Fit…</div>
         </div>
         <div class="hero-ring">
           <svg width="80" height="80" viewBox="0 0 80 80">
             <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="7"/>
-            <circle id="ring-arc" cx="40" cy="40" r="32" fill="none" stroke="var(--orange)" stroke-width="7" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201"/>
+            <circle id="ring-arc" cx="40" cy="40" r="32" fill="none" stroke="var(--green)" stroke-width="7" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201"/>
           </svg>
           <div class="hero-ring-inner">
             <div class="hero-ring-pct" id="ring-pct">0%</div>
-            <div class="hero-ring-label">to 10K</div>
+            <div class="hero-ring-label">done</div>
           </div>
         </div>
       </div>
-      <div class="hero-track">
+      <div id="achievement-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px"></div>
+      <div class="hero-track" style="margin-top:12px">
         <div class="hero-track-bar">
-          <div class="hero-track-fill" id="hero-fill" style="width:0%"></div>
+          <div class="hero-track-fill" id="hero-fill" style="width:0%;background:linear-gradient(90deg,var(--green),#00ffb3)"></div>
         </div>
         <div class="hero-track-meta">
+          <span id="hero-progress-left">Syncing…</span>
           <span>Day <span id="hero-daynum">2</span> of 56</span>
-          <span id="hero-weekgoal">Goal: 20 min walk</span>
         </div>
       </div>
     </div>
@@ -424,8 +425,8 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
 
     <div class="mission">
       <div class="mission-hdr">
-        <div class="mission-title">🎯 Today's Mission</div>
-        <div class="mission-pts">+<span id="total-task-pts">0</span> XP available</div>
+        <div class="mission-title">🎯 Today's Goals</div>
+        <div class="mission-pts">⚡ <span id="total-task-pts">0</span> XP earned</div>
       </div>
       <div id="mission-tasks"></div>
     </div>
@@ -593,15 +594,16 @@ const PLAN = [
   { week:8, name:'Race Week 🏁', badge:'race', bc:'wbadge-race', emoji:'🏆', goal:'Taper. Rest. Trust your training. Race day: just finish!', km:'10K Race!', days:[{d:'Mon',t:'Easy 20 min jog',dist:'~3 km'},{d:'Tue',t:'Rest',dist:'—'},{d:'Wed',t:'Easy 15 min jog',dist:'~2 km'},{d:'Thu',t:'Full rest',dist:'—'},{d:'Fri',t:'10 min shakeout',dist:'~1 km'},{d:'Sat',t:'Rest & prepare',dist:'—'},{d:'Sun',t:'🏆 RACE DAY — 10K!',dist:'10 km'}]},
 ];
 
+// metric: 'steps'|'dist'|'sleep'|'manual' — drives auto-XP calculation
 const MISSIONS_BY_WEEK = [
-  [{text:'Walk 20–30 minutes outside',meta:'~2,000–3,000 steps',pts:40},{text:'Drink 2 litres of water today',meta:'Hydration = recovery',pts:20},{text:'Sleep 7.5+ hours tonight',meta:'Log in Google Fit',pts:30}],
-  [{text:'Brisk walk 30–40 min — slightly breathless',meta:'~3,500–4,500 steps',pts:45},{text:'Stretch calves + hamstrings after walk',meta:'5 min cooldown',pts:20},{text:'Drink 2.5 litres water',meta:'Your body is adapting',pts:15}],
-  [{text:'Walk 4 min → Jog 1 min → repeat 4×',meta:'First run intervals!',pts:60},{text:'Jog slow enough to speak full sentences',meta:'This builds your aerobic base',pts:20},{text:'Note any pain or discomfort',meta:'Rest immediately if you feel knee/shin pain',pts:10}],
-  [{text:'Walk 3 min → Jog 2 min → repeat 5×',meta:'10 min running total!',pts:70},{text:'Hydrate 500ml before + after session',meta:'Prevents cramps',pts:20},{text:'Log your HR after the jog',meta:'Watch it drop week by week',pts:20}],
-  [{text:'Jog 5 min → Walk 2 min → repeat 4×',meta:'28 min total',pts:80},{text:'Practice 3-in 2-out breathing rhythm',meta:'Reduces side stitches',pts:15},{text:'Log workout in Google Fit',meta:'Build your history',pts:15}],
-  [{text:'Run 20 min non-stop at easy pace',meta:'Your biggest milestone yet!',pts:100},{text:'Do NOT check your pace — just finish',meta:'Speed comes later',pts:20},{text:'Stretch or foam roll 10 min after',meta:'Prevent DOMS',pts:20}],
-  [{text:'Run 30–35 min easy — that is 5K!',meta:'Halfway to race distance',pts:100},{text:'Practice race-day nutrition: light meal 2hrs before',meta:'Avoid stomach issues on race day',pts:20},{text:'Rest & sleep 8h tonight',meta:'Almost race week!',pts:20}],
-  [{text:'Easy 20 min jog — keep legs fresh',meta:'Do NOT over-train this week',pts:50},{text:'Plan race day: route, timing, kit, food',meta:'Preparation = confidence',pts:30},{text:'Sleep 8+ hours every night this week',meta:'Performance depends on sleep',pts:40}],
+  [{text:'Walk 20–30 minutes outside',meta:'~2,000–3,000 steps',pts:40,metric:'steps'},{text:'Sleep 7.5+ hours tonight',meta:'Log in Google Fit',pts:30,metric:'sleep'}],
+  [{text:'Brisk walk 30–40 min — slightly breathless',meta:'~3,500–4,500 steps',pts:45,metric:'steps'},{text:'Sleep 7.5+ hrs tonight — body adapting',meta:'Recovery is training',pts:20,metric:'sleep'}],
+  [{text:'Walk 4 min → Jog 1 min → repeat 4×',meta:'First run intervals!',pts:60,metric:'steps'},{text:'Log distance today',meta:'Goal: 2.5 km',pts:30,metric:'dist'},{text:'Sleep 7.5+ hrs tonight',meta:'Muscles repair while you sleep',pts:20,metric:'sleep'}],
+  [{text:'Walk 3 min → Jog 2 min × 5 — goal: 3 km',meta:'10 min running total!',pts:70,metric:'dist'},{text:'Sleep 7.5+ hrs for muscle repair',meta:'Watch HR drop week by week',pts:20,metric:'sleep'}],
+  [{text:'Jog 5 + Walk 2 × 4 — goal: 4 km',meta:'28 min total',pts:80,metric:'dist'},{text:'Sleep 7.5+ hrs — race prep starts now',meta:'Builds aerobic enzyme density',pts:20,metric:'sleep'}],
+  [{text:'Run non-stop — goal: 3 km',meta:'Your biggest milestone yet!',pts:100,metric:'dist'},{text:'Hit 6,000+ steps today',meta:'Walk before and after run',pts:40,metric:'steps'},{text:'Sleep 7.5+ hrs — body building aerobic base',meta:'DO NOT skip recovery',pts:30,metric:'sleep'}],
+  [{text:'Run easy — goal: 5 km distance',meta:'Halfway to race distance!',pts:100,metric:'dist'},{text:'8,000+ steps total today',meta:'Walking cooldown after run',pts:40,metric:'steps'},{text:'Sleep 8+ hrs — almost race week',meta:'Sleep is your secret weapon',pts:30,metric:'sleep'}],
+  [{text:'Easy jog — goal: 3 km (stay fresh)',meta:'Do NOT over-train',pts:50,metric:'dist'},{text:'5,000+ steps — keep moving lightly',meta:'Taper week — less is more',pts:30,metric:'steps'},{text:'Sleep 8+ hrs every night this week',meta:'Performance depends on sleep',pts:40,metric:'sleep'}],
 ];
 
 const BADGE_DEFS = [
@@ -698,11 +700,7 @@ function initUI() {
   const subs = ['Walk 20–30 min daily. No running. Build the habit first — the race comes later.','Brisk walks 30–40 min. Slightly breathless = perfect pace.','Walk 4 min, jog 1 min. Your very first running session!','Walk 3 min, jog 2 min. You\'re now running 10 min total!','Jog 5 min, walk 2 min. Getting stronger every day!','First 20 min continuous run. Your biggest milestone yet!','Build to a 30–35 min run — that\'s your 5K!','Taper, rest, and trust your training. Race day is here!'];
   const goals = ['Goal: 20 min walk','Goal: 30 min brisk walk','Goal: 4×(walk 4 + jog 1)','Goal: 5×(walk 3 + jog 2)','Goal: 4×(jog 5 + walk 2)','Goal: 20 min non-stop run','Goal: 30–35 min run','Goal: Complete the 10K!'];
 
-  document.getElementById('hero-phase').textContent = phases[week-1];
-  document.getElementById('hero-title').textContent = titles[week-1];
-  document.getElementById('hero-sub').textContent = subs[week-1];
-  document.getElementById('hero-weekgoal').textContent = goals[week-1];
-  document.getElementById('hero-fill').style.width = pct + '%';
+  // hero-phase/title/sub/fill are set dynamically by updateHero() after sync
   document.getElementById('hero-daynum').textContent = day;
   document.getElementById('chip-day').textContent = day;
   document.getElementById('plan-daynum').textContent = day;
@@ -710,12 +708,7 @@ function initUI() {
   const now = new Date();
   document.getElementById('chip-date').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
 
-  // Ring animation
-  setTimeout(() => {
-    const offset = 201 - (201 * pct / 100);
-    document.getElementById('ring-arc').style.strokeDashoffset = offset;
-    document.getElementById('ring-pct').textContent = pct + '%';
-  }, 400);
+  // Ring is updated by updateHero() after sync — no static animation needed
 
   renderMission();
   renderRewards();
@@ -727,71 +720,144 @@ function initUI() {
   if (store.manualHR) showHR(store.manualHR, true);
 }
 
-// ─── MISSION ──────────────────────────────────────────
-function renderMission() {
-  const week = getWeek(), day = getDayNumber();
+// ─── MISSION — fully auto-evaluated from Fit data ─────
+// Goals are assessed automatically; XP is proportional to completion %
+function renderMission(todaySteps, todayKm, todaySleep, stepGoal, distGoal) {
+  const week = getWeek();
   const tasks = MISSIONS_BY_WEEK[week-1];
-  const store = loadStore();
-  const checks = store.checks || {};
-  const dayKey = `d${day}`;
-  let totalPts = tasks.reduce((a,t) => a+t.pts, 0);
-  document.getElementById('total-task-pts').textContent = totalPts;
-  document.getElementById('mission-tasks').innerHTML = tasks.map((t,i) => {
-    const key = `${dayKey}_${i}`;
-    const done = checks[key] || false;
+
+  // Evaluate each task automatically from real Fit data
+  const results = tasks.map(t => {
+    let pct = 0;
+    if (t.metric === 'steps')   pct = stepGoal   ? Math.min(100, Math.round((todaySteps||0) / stepGoal * 100))  : 0;
+    if (t.metric === 'dist')    pct = distGoal    ? Math.min(100, Math.round((todayKm||0)    / distGoal * 100))  : 0;
+    if (t.metric === 'sleep')   pct = todaySleep  ? Math.min(100, Math.round(todaySleep       / 7.5 * 100))      : 0;
+    if (t.metric === 'manual')  pct = t.earned    ? 100 : 0; // HR log etc
+    const earnedPts = Math.round(t.pts * pct / 100);
+    return { ...t, pct, earnedPts, done: pct >= 100 };
+  });
+
+  const totalEarned = results.reduce((a,r) => a + r.earnedPts, 0);
+  document.getElementById('total-task-pts').textContent = totalEarned;
+
+  document.getElementById('mission-tasks').innerHTML = results.map(r => {
+    const barColor = r.done ? 'var(--green)' : r.pct > 50 ? 'var(--amber)' : 'var(--orange)';
     return `<div class="task">
-      <div class="task-chk ${done?'done':''}" onclick="toggleTask(${i})" id="tc-${i}">${done?'✓':''}</div>
-      <div class="task-body"><div class="task-text">${t.text}</div><div class="task-meta">${t.meta}</div></div>
-      <div class="task-pts">+${t.pts} XP</div>
+      <div class="task-chk ${r.done?'done':''}" style="cursor:default">${r.done?'✓':r.pct>0?Math.round(r.pct)+'%':''}</div>
+      <div class="task-body">
+        <div class="task-text">${r.text}</div>
+        <div style="height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:5px;overflow:hidden">
+          <div style="height:100%;width:${r.pct}%;background:${barColor};border-radius:2px;transition:width .8s ease"></div>
+        </div>
+        <div class="task-meta" style="margin-top:3px">${r.meta} · ${r.pct}% complete</div>
+      </div>
+      <div class="task-pts" style="color:${r.done?'var(--green)':'var(--text3)'}">+${r.earnedPts}</div>
     </div>`;
   }).join('');
+
+  // Auto-award XP proportionally (idempotent — won't double-award same day)
+  autoAwardXP(results, totalEarned);
+
+  // Celebrate if all done
+  const allDone = results.every(r => r.done);
+  const store = loadStore();
+  const todayStr = new Date().toDateString();
+  if (allDone && !store['celebrated_' + todayStr]) {
+    store['celebrated_' + todayStr] = true;
+    saveStore(store);
+    setTimeout(() => celebrate('🎯','All Goals Done!','Your Google Fit data confirms it — great day!', totalEarned), 600);
+  }
 }
 
-function toggleTask(i) {
-  const week = getWeek(), day = getDayNumber();
-  const tasks = MISSIONS_BY_WEEK[week-1];
+// XP awarded automatically based on % completion — idempotent per day
+function autoAwardXP(results, totalEarned) {
   const store = loadStore();
-  if (!store.checks) store.checks = {};
+  const todayStr = new Date().toDateString();
+  const xpKey = 'xp_awarded_' + todayStr;
+  const prevAwarded = store[xpKey] || 0;
+  const delta = totalEarned - prevAwarded;
+  if (delta <= 0) return; // already awarded up to this amount
+
+  store[xpKey] = totalEarned;
+  store.totalXP = (store.totalXP || 0) + delta;
   if (!store.points_log) store.points_log = [];
-  const key = `d${day}_${i}`;
-  const wasDone = store.checks[key] || false;
-  store.checks[key] = !wasDone;
-  const el = document.getElementById(`tc-${i}`);
-  el.classList.toggle('done', store.checks[key]);
-  el.textContent = store.checks[key] ? '✓' : '';
 
-  if (store.checks[key]) {
-    const pts = tasks[i].pts;
-    store.totalXP = (store.totalXP || 0) + pts;
-    store.points_log.unshift({ desc: tasks[i].text, pts, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) });
-    if (store.points_log.length > 20) store.points_log.pop();
-
-    // Check streak
-    const todayStr = new Date().toDateString();
-    if (store.lastActiveDay !== todayStr) {
-      const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
-      store.streak = store.lastActiveDay === yesterday.toDateString() ? (store.streak||0)+1 : 1;
-      store.lastActiveDay = todayStr;
+  results.filter(r => r.earnedPts > 0 && r.pct > 0).forEach(r => {
+    const logKey = `logged_${todayStr}_${r.metric}`;
+    if (!store[logKey]) {
+      store[logKey] = true;
+      store.points_log.unshift({ desc: r.text, pts: r.earnedPts, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) });
     }
-    store.totalDays = getDayNumber();
+  });
+  if (store.points_log.length > 30) store.points_log = store.points_log.slice(0, 30);
 
-    // Check all tasks done today
-    const allDone = tasks.every((_,idx) => store.checks[`d${day}_${idx}`]);
-    if (allDone) {
-      setTimeout(() => celebrate('🎯','Mission Complete!',`All tasks done for today. You earned ${tasks.reduce((a,t)=>a+t.pts,0)} XP!`, tasks.reduce((a,t)=>a+t.pts,0)), 300);
-      store.streak = Math.max(store.streak||1, 1);
-    } else {
-      showToast(`+${pts} XP earned! 🔥`);
-    }
-    saveStore(store);
-    renderRewards();
-  } else {
-    // Deduct
-    store.totalXP = Math.max(0, (store.totalXP||0) - tasks[i].pts);
-    saveStore(store);
-    renderRewards();
-    showToast('Task unchecked');
+  // Streak — triggered by any activity (steps > 0)
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+  if (store.lastActiveDay !== todayStr) {
+    store.streak = store.lastActiveDay === yesterday.toDateString() ? (store.streak||0)+1 : 1;
+    store.lastActiveDay = todayStr;
   }
+  store.totalDays = getDayNumber();
+  saveStore(store);
+  renderRewards();
+}
+
+// ─── HERO — leads with achievements, not pressure ──────
+function updateHero(steps, km, sleep, stepGoal, distGoal, stepPct, distPct, sleepPct) {
+  const week = getWeek();
+  const phases = ['Week 1 · Foundation','Week 2 · Build Habit','Week 3 · First Jogs','Week 4 · More Running','Week 5 · Run-Walk-Run','Week 6 · Continuous Run','Week 7 · Build to 5K','Week 8 · Race Week'];
+  document.getElementById('hero-phase').textContent = phases[week-1];
+
+  // Overall completion % = average of what we can measure
+  const metrics = [stepPct, distPct];
+  if (sleepPct) metrics.push(sleepPct);
+  const overallPct = Math.round(metrics.reduce((a,b)=>a+b,0) / metrics.length);
+
+  // Title and sub reflect what you HAVE done, not what's left
+  let title, sub;
+  if (steps === 0 && !sleep) {
+    title = "Day is just starting! 🌅";
+    sub = 'Your Google Fit data will appear here as you move. Go take that first walk!';
+  } else if (overallPct >= 100) {
+    title = "All goals smashed! 🏆";
+    sub = `${steps.toLocaleString()} steps · ${km} km · ${sleep?sleep+'h sleep':''} — perfect day.`;
+  } else if (overallPct >= 60) {
+    title = "Strong progress today! 💪";
+    sub = `${steps.toLocaleString()} steps and ${km} km done. You're well on your way.`;
+  } else if (overallPct >= 30) {
+    title = "You've already moved! 🚶";
+    sub = `${steps.toLocaleString()} steps logged from Google Fit. Keep it going — every step counts.`;
+  } else {
+    title = "Early in the day 🌤";
+    sub = `${steps.toLocaleString()} steps so far. The day is not over — your best walk might be tonight.`;
+  }
+  document.getElementById('hero-title').textContent = title;
+  document.getElementById('hero-sub').textContent = sub;
+
+  // Progress ring shows TODAY's completion — not journey %
+  const offset = 201 - (201 * Math.min(100,overallPct) / 100);
+  document.getElementById('ring-arc').style.strokeDashoffset = offset;
+  document.getElementById('ring-arc').style.stroke = overallPct >= 100 ? 'var(--green)' : overallPct >= 60 ? 'var(--blue)' : 'var(--orange)';
+  document.getElementById('ring-pct').textContent = overallPct + '%';
+
+  // Track bar = today's step progress
+  document.getElementById('hero-fill').style.width = stepPct + '%';
+  document.getElementById('hero-progress-left').textContent = steps > 0
+    ? `${steps.toLocaleString()} of ${stepGoal.toLocaleString()} steps`
+    : 'No steps yet today';
+
+  // Achievement pills — celebrate what's already done
+  const pills = [];
+  if (steps >= stepGoal) pills.push({label:'👟 Steps goal ✓', color:'var(--green-l)'});
+  else if (steps > 0) pills.push({label:`👟 ${steps.toLocaleString()} steps`, color:'var(--orange-l)'});
+  if (km >= distGoal) pills.push({label:`🏃 ${km} km ✓`, color:'var(--green-l)'});
+  else if (km > 0) pills.push({label:`🚶 ${km} km walked`, color:'var(--orange-l)'});
+  if (sleep && sleep >= 7.5) pills.push({label:`😴 ${sleep}h sleep ✓`, color:'var(--green-l)'});
+  else if (sleep) pills.push({label:`😴 ${sleep}h sleep`, color:'rgba(167,139,250,.15)'});
+
+  document.getElementById('achievement-pills').innerHTML = pills.map(p =>
+    `<span style="background:${p.color};border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--text)">${p.label}</span>`
+  ).join('');
 }
 
 // ─── REWARDS ──────────────────────────────────────────
@@ -933,17 +999,18 @@ function processData(stepsData, calData, sleepData, hrData) {
   const todayHR = hrArr[6] || avgHR;
 
   const week=getWeek();
+  // Goals scale with week — same source of truth used everywhere
   const stepGoal=week<=2?4000:week<=4?6000:8000;
   const distGoal=week<=2?2:week<=4?3.5:5;
   const stepPct=Math.min(100,Math.round(todaySteps/stepGoal*100));
   const distPct=Math.min(100,Math.round(todayKm/distGoal*100));
+  const sleepPct=todaySleep?Math.min(100,Math.round(todaySleep/7.5*100)):0;
 
-  // Stats
-  const stepsEl=document.getElementById('s-steps');
-  stepsEl.innerHTML=todaySteps.toLocaleString()+'<span class="stat-unit"> steps</span>';
+  // ── Stats grid — same numbers as Fit, no rounding discrepancy ──
+  document.getElementById('s-steps').innerHTML=todaySteps.toLocaleString()+'<span class="stat-unit"> steps</span>';
   document.getElementById('s-steps-sub').textContent=`${stepPct}% of ${stepGoal.toLocaleString()} goal`;
   document.getElementById('s-steps-bar').style.width=stepPct+'%';
-  if(stepPct>=100){document.getElementById('s-steps').closest('.stat').classList.add('goal-hit');awardGoalXP('steps',50,'Step goal crushed! 👟');}
+  if(stepPct>=100) document.getElementById('s-steps').closest('.stat').classList.add('goal-hit');
 
   document.getElementById('s-dist').innerHTML=todayKm+'<span class="stat-unit"> km</span>';
   document.getElementById('s-dist-sub').textContent=`Goal: ${distGoal} km${distPct>=100?' ✅':''}`;
@@ -955,17 +1022,19 @@ function processData(stepsData, calData, sleepData, hrData) {
   if(todaySleep){
     document.getElementById('s-sleep').innerHTML=todaySleep.toFixed(1)+'<span class="stat-unit"> hrs</span>';
     document.getElementById('s-sleep-sub').textContent=todaySleep>=7.5?'✅ Great recovery':'⚠️ Aim for 7.5h+';
-    document.getElementById('s-sleep-bar').style.width=Math.min(100,Math.round(todaySleep/8*100))+'%';
+    document.getElementById('s-sleep-bar').style.width=sleepPct+'%';
     document.getElementById('s-sleep-bar').style.background=todaySleep>=7.5?'var(--green)':'var(--amber)';
-    if(todaySleep>=7.5) awardGoalXP('sleep',30,'Sleep goal achieved! 😴');
   }
 
-  // HR from Fit
+  // ── HR from Fit (or manual fallback) ──
   if(todayHR) showHR(todayHR, false);
-  else {
-    const store=loadStore();
-    if(store.manualHR) showHR(store.manualHR, true);
-  }
+  else { const store=loadStore(); if(store.manualHR) showHR(store.manualHR, true); }
+
+  // ── Mission — auto-evaluated from real Fit numbers ──
+  renderMission(todaySteps, todayKm, todaySleep, stepGoal, distGoal);
+
+  // ── Hero — leads with what you ALREADY achieved today ──
+  updateHero(todaySteps, todayKm, todaySleep, stepGoal, distGoal, stepPct, distPct, sleepPct);
 
   renderTips(todaySteps, todaySleep, stepGoal, todayHR);
   renderCharts();
@@ -1028,19 +1097,7 @@ function saveHR() {
   showToast('+20 XP — HR logged! 💓');
 }
 
-// ─── AUTO XP FOR GOALS ────────────────────────────────
-function awardGoalXP(goalId, pts, msg) {
-  const store=loadStore();
-  const today=new Date().toDateString();
-  if(!store.goalAwards)store.goalAwards={};
-  if(store.goalAwards[`${today}_${goalId}`])return;
-  store.goalAwards[`${today}_${goalId}`]=true;
-  if(!store.points_log)store.points_log=[];
-  store.totalXP=(store.totalXP||0)+pts;
-  store.points_log.unshift({desc:msg,pts,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
-  saveStore(store);
-  renderRewards();
-}
+// awardGoalXP removed — XP now auto-calculated in autoAwardXP()
 
 // ─── TIPS ─────────────────────────────────────────────
 function renderTips(steps, sleep, goal, hr) {
