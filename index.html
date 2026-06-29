@@ -474,7 +474,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
 
 <script>
 // ── CONFIG ────────────────────────────────────────────
-const START_DATE = new Date('2026-06-28');
+// Use explicit Y/M/D so timezones don't shift the start date.
+// Month is 0-indexed in JS — 5 = June. So this is June 28, 2026 00:00 LOCAL time.
+const START_DATE = new Date(2026, 5, 28, 0, 0, 0, 0);
 const STORE_KEY  = 'runup_v3';
 const SCOPES = [
   'https://www.googleapis.com/auth/fitness.activity.read',
@@ -497,7 +499,8 @@ function save(s) { localStorage.setItem(STORE_KEY, JSON.stringify(s)); }
 function dayNum() {
   const now = new Date(); now.setHours(0,0,0,0);
   const s   = new Date(START_DATE); s.setHours(0,0,0,0);
-  return Math.max(1, Math.floor((now-s)/86400000)+1);
+  // Math.round handles DST shifts that can leave a tiny fractional offset
+  return Math.max(1, Math.round((now-s)/86400000)+1);
 }
 function weekNum() { return Math.min(8, Math.ceil(dayNum()/7)); }
 
