@@ -603,6 +603,75 @@ function launchApp() {
   renderJourney();
   renderPlan();
   syncAll();
+  requestNotificationPermission();
+  scheduleMidnightRollover();
+}
+
+// ── NOTIFICATIONS — every 2 hours while app is open ───
+// Browser limitation: cannot fire when the tab is closed unless installed as PWA.
+// We do the best we can: persistent reminders every 2 hours when the tab is open.
+let reminderTimer = null;
+function requestNotificationPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    setTimeout(() => {
+      Notification.requestPermission().then(p => {
+        if (p === 'granted') showToast('Notifications enabled — you will get reminders every 2 hours');
+      });
+    }, 3000);
+  }
+}
+
+function scheduleReminder() {
+  clearTimeout(reminderTimer);
+  reminderTimer = setTimeout(fireReminder, 2 * 60 * 60 * 1000); // 2 hours
+}
+
+function fireReminder() {
+  const todaySteps = fitData.steps?.[6] || 0;
+  const w = weekNum();
+  const stepGoal = w<=2 ? 4000 : w<=4 ? 6000 : 8000;
+  const remaining = Math.max(0, stepGoal - todaySteps);
+
+  let title, body;
+  if (todaySteps >= stepGoal) {
+    title = '🏆 Goal already hit today!';
+    body = `${todaySteps.toLocaleString()} steps — excellent! Bonus walking still earns extra XP.`;
+  } else if (todaySteps === 0) {
+    title = '👟 Time to get moving!';
+    body = `No steps yet today. A 15-min walk will get you started.`;
+  } else {
+    title = '🚶 ' + remaining.toLocaleString() + ' steps to go';
+    body = `You're at ${todaySteps.toLocaleString()} steps. A short walk closes the gap.`;
+  }
+
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '🏃', tag: 'runup-reminder' });
+  } else {
+    showToast(title);
+  }
+  // Auto-resync from Fit too, so the numbers stay fresh
+  if (accessToken) syncAll();
+  else scheduleReminder(); // reschedule even if sync skipped
+}
+
+// ── MIDNIGHT ROLLOVER — auto-refresh when day changes ──
+// Without this, the UI would still show yesterday's day number until manual reload.
+function scheduleMidnightRollover() {
+  const now = new Date();
+  const nextMidnight = new Date(now);
+  nextMidnight.setHours(24, 0, 30, 0); // 30 sec past midnight, safe margin
+  const msUntil = nextMidnight - now;
+  setTimeout(() => {
+    const d = dayNum();
+    document.getElementById('hero-day').textContent = d;
+    document.getElementById('plan-day').textContent = d;
+    renderJourney();
+    renderPlan();
+    renderRewards();
+    if (accessToken) syncAll();
+    scheduleMidnightRollover(); // schedule again for next midnight
+  }, msUntil);
 }
 
 // ── GOOGLE FIT API ────────────────────────────────────
@@ -627,17 +696,26 @@ async function syncAll() {
   btn.classList.add('spin');
   showErr('');
   try {
-    const now = Date.now(), DAY = 86400000;
+    // CRITICAL: Align buckets to LOCAL midnight, not UTC.
+    // Google Fit aggregates each bucket from startTimeMillis. If we used Date.now(),
+    // buckets straddle midnight in your timezone and today's data appears mixed
+    // with yesterday's. Anchoring to local 00:00 fixes this.
+    const DAY = 86400000;
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const startMs = todayStart.getTime() - 6 * DAY; // 6 days before today's start
+    const endMs   = todayStart.getTime() + DAY;     // end of today (local midnight tomorrow)
+
     const [user, stepsRaw, calRaw, hrRaw, hpRaw] = await Promise.all([
       getUser(),
-      fitPost('com.google.step_count.delta',   now - 7*DAY, now),
-      fitPost('com.google.calories.expended',  now - 7*DAY, now),
-      fitPost('com.google.heart_rate.bpm',     now - 7*DAY, now),  // wearable sensor
-      fitPost('com.google.heart_minutes',      now - 7*DAY, now),  // Heart Points — works on phone
+      fitPost('com.google.step_count.delta',   startMs, endMs),
+      fitPost('com.google.calories.expended',  startMs, endMs),
+      fitPost('com.google.heart_rate.bpm',     startMs, endMs),  // wearable sensor only
+      fitPost('com.google.heart_minutes',      startMs, endMs),  // Heart Points — works on phone
     ]);
     renderProfile(user);
     processAll(stepsRaw, calRaw, hrRaw, hpRaw);
     document.getElementById('last-sync').textContent = new Date().toLocaleTimeString();
+    scheduleReminder();
     showToast('Synced from Google Fit');
   } catch(e) {
     showErr(e.message);
