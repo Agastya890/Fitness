@@ -350,41 +350,10 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
       <div class="stat" id="stat-pts"><span class="stat-icon">❤️</span><div class="stat-label">Heart Points</div><div class="stat-val" id="s-pts">—</div><div class="stat-sub" id="s-pts-sub">Goal: 10 pts/day</div><div class="stat-bar"><div class="stat-fill" id="s-pts-bar" style="width:0%;background:var(--red)"></div></div></div>
     </div>
 
-    <!-- HEART RATE -->
-    <div class="sec">Heart Rate</div>
-    <div class="hr-card">
-      <div class="hr-hdr">
-        <div class="hr-title"><span class="heartbeat">❤️</span> Heart Rate</div>
-        <button class="hr-log-btn" onclick="toggleHrPanel()">+ Measure now</button>
-      </div>
-      <div class="hr-main">
-        <div class="hr-bpm-wrap">
-          <div class="hr-bpm" id="hr-bpm">—</div>
-          <div class="hr-unit">bpm</div>
-        </div>
-        <span class="hr-src hr-src-none" id="hr-src">No data</span>
-      </div>
-      <div class="hr-status" id="hr-status">Google Fit on phone cannot auto-read HR — measure manually using the button above.</div>
-      <div class="hr-pts-row" id="hr-pts-info" style="display:none">
-        <strong>Heart Points today: <span id="hr-pts-val">0</span></strong> — Google automatically awards heart points for any moderate+ activity. This reflects your cardio effort even without a wearable.
-      </div>
-      <div class="zones" id="hr-zones" style="display:none">
-        <div class="zone"><div class="zone-lbl">Zone 1 Recovery</div><div class="zone-track"><div class="zone-fill" id="z1" style="width:0%;background:#2da868"></div></div><div class="zone-pct" id="z1p">—</div></div>
-        <div class="zone"><div class="zone-lbl">Zone 2 Aerobic</div><div class="zone-track"><div class="zone-fill" id="z2" style="width:0%;background:#3b7dd8"></div></div><div class="zone-pct" id="z2p">—</div></div>
-        <div class="zone"><div class="zone-lbl">Zone 3 Tempo</div><div class="zone-track"><div class="zone-fill" id="z3" style="width:0%;background:#c47d0e"></div></div><div class="zone-pct" id="z3p">—</div></div>
-        <div class="zone"><div class="zone-lbl">Zone 4 Hard</div><div class="zone-track"><div class="zone-fill" id="z4" style="width:0%;background:#d94040"></div></div><div class="zone-pct" id="z4p">—</div></div>
-        <div class="zone"><div class="zone-lbl">Zone 5 Max</div><div class="zone-track"><div class="zone-fill" id="z5" style="width:0%;background:#8b1c1c"></div></div><div class="zone-pct" id="z5p">—</div></div>
-      </div>
-      <div class="hr-panel" id="hr-panel">
-        <div class="hr-row">
-          <input type="number" class="hr-input" id="hr-input" placeholder="e.g. 72" min="30" max="220">
-          <button class="hr-save" onclick="saveHR()">Save (+20 XP)</button>
-        </div>
-        <div class="hr-how">
-          <strong>How to measure in Google Fit:</strong><br>
-          Open Google Fit app → scroll to Heart Rate card → tap it → place your finger gently on the rear camera lens → hold still for 30 seconds → note the number → enter it above.
-        </div>
-      </div>
+    <!-- Enable notifications button -->
+    <div style="background:var(--blue-l);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div style="font-size:12px;color:var(--blue-d);flex:1">🔔 Get walk reminders every 5 min during 6 AM–11 PM</div>
+      <button onclick="requestNotificationPermission()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap">Enable</button>
     </div>
 
     <div class="sec">Steps this week</div>
@@ -607,52 +576,89 @@ function launchApp() {
   scheduleMidnightRollover();
 }
 
-// ── NOTIFICATIONS — every 2 hours while app is open ───
-// Browser limitation: cannot fire when the tab is closed unless installed as PWA.
-// We do the best we can: persistent reminders every 2 hours when the tab is open.
+// ── NOTIFICATIONS ─────────────────────────────────────
+// Active hours: 6:00 AM to 11:00 PM local. Outside this, reminders skip silently.
+// Reminder interval: 5 min (testing). Change REMINDER_MS to (2*60*60*1000) for prod.
+// Mobile browser limitation: Notifications only fire while the page is open in
+// some tab. For background notifications, "Add to Home screen" to install as PWA.
+const REMINDER_MS = 5 * 60 * 1000;           // 5 min — TODO: 2*60*60*1000 for prod
+const QUIET_START_HOUR = 23;                  // 11 PM
+const QUIET_END_HOUR   = 6;                   // 6 AM (no reminders before this)
 let reminderTimer = null;
+
 function requestNotificationPermission() {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'default') {
-    setTimeout(() => {
-      Notification.requestPermission().then(p => {
-        if (p === 'granted') showToast('Notifications enabled — you will get reminders every 2 hours');
-      });
-    }, 3000);
+  if (!('Notification' in window)) {
+    showToast('Notifications unsupported in this browser');
+    return;
   }
+  if (Notification.permission === 'granted') {
+    showToast('Reminders active — every 5 min between 6 AM and 11 PM');
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    showToast('Notifications blocked — enable them in browser site settings');
+    return;
+  }
+  // 'default' state — show prompt after a beat so user sees the app first
+  setTimeout(() => {
+    Notification.requestPermission().then(p => {
+      if (p === 'granted') {
+        showToast('Notifications enabled ✓');
+        // Fire a test ping immediately so user knows it's working
+        try { new Notification('🏃 RunUp ready', { body:'You will get reminders every 5 min during 6 AM–11 PM.', tag:'runup-init' }); } catch(e){}
+      } else {
+        showToast('Notifications skipped — tap "Allow" next time for reminders');
+      }
+    });
+  }, 2000);
+}
+
+function isWithinActiveHours() {
+  const h = new Date().getHours();
+  // active 6..22 (6 AM through 10:59 PM). At 11 PM exactly, stop.
+  return h >= QUIET_END_HOUR && h < QUIET_START_HOUR;
 }
 
 function scheduleReminder() {
   clearTimeout(reminderTimer);
-  reminderTimer = setTimeout(fireReminder, 2 * 60 * 60 * 1000); // 2 hours
+  reminderTimer = setTimeout(fireReminder, REMINDER_MS);
 }
 
 function fireReminder() {
-  const todaySteps = fitData.steps?.[6] || 0;
-  const w = weekNum();
-  const stepGoal = w<=2 ? 4000 : w<=4 ? 6000 : 8000;
-  const remaining = Math.max(0, stepGoal - todaySteps);
+  // Always reschedule first so the cycle continues no matter what
+  scheduleReminder();
+
+  // Skip silently outside active hours
+  if (!isWithinActiveHours()) return;
+
+  const todaySteps = (fitData.steps && fitData.steps[6]) || 0;
+  const todayKm    = parseFloat((todaySteps * 0.00075).toFixed(1));
+  const todayHP    = (fitData.heartPts && fitData.heartPts[6]) || 0;
+  const w          = weekNum();
+  const stepGoal   = w<=2 ? 4000 : w<=4 ? 6000 : 8000;
+  const remaining  = Math.max(0, stepGoal - todaySteps);
 
   let title, body;
   if (todaySteps >= stepGoal) {
-    title = '🏆 Goal already hit today!';
-    body = `${todaySteps.toLocaleString()} steps — excellent! Bonus walking still earns extra XP.`;
+    title = '🏆 Day ' + dayNum() + ': Goal hit!';
+    body  = todaySteps.toLocaleString() + ' steps · ' + todayKm + ' km · ' + todayHP + ' heart points. Bonus walking earns more XP!';
   } else if (todaySteps === 0) {
-    title = '👟 Time to get moving!';
-    body = `No steps yet today. A 15-min walk will get you started.`;
+    title = '👟 Day ' + dayNum() + ': Time to walk!';
+    body  = 'No steps yet today. Step outside for 15 min to start earning XP.';
   } else {
     title = '🚶 ' + remaining.toLocaleString() + ' steps to go';
-    body = `You're at ${todaySteps.toLocaleString()} steps. A short walk closes the gap.`;
+    body  = 'You are at ' + todaySteps.toLocaleString() + ' steps. ' + todayHP + ' heart points earned so far.';
   }
 
   if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, { body, icon: '🏃', tag: 'runup-reminder' });
+    try {
+      new Notification(title, { body, tag:'runup-reminder', renotify:true });
+    } catch(e) { console.warn('Notification fire failed:', e); }
   } else {
     showToast(title);
   }
-  // Auto-resync from Fit too, so the numbers stay fresh
-  if (accessToken) syncAll();
-  else scheduleReminder(); // reschedule even if sync skipped
+  // Refresh data so the next reminder shows up-to-date numbers
+  if (accessToken && document.visibilityState === 'visible') syncAll();
 }
 
 // ── MIDNIGHT ROLLOVER — auto-refresh when day changes ──
@@ -705,15 +711,14 @@ async function syncAll() {
     const startMs = todayStart.getTime() - 6 * DAY; // 6 days before today's start
     const endMs   = todayStart.getTime() + DAY;     // end of today (local midnight tomorrow)
 
-    const [user, stepsRaw, calRaw, hrRaw, hpRaw] = await Promise.all([
+    const [user, stepsRaw, calRaw, hpRaw] = await Promise.all([
       getUser(),
       fitPost('com.google.step_count.delta',   startMs, endMs),
       fitPost('com.google.calories.expended',  startMs, endMs),
-      fitPost('com.google.heart_rate.bpm',     startMs, endMs),  // wearable sensor only
       fitPost('com.google.heart_minutes',      startMs, endMs),  // Heart Points — works on phone
     ]);
     renderProfile(user);
-    processAll(stepsRaw, calRaw, hrRaw, hpRaw);
+    processAll(stepsRaw, calRaw, hpRaw);
     document.getElementById('last-sync').textContent = new Date().toLocaleTimeString();
     scheduleReminder();
     showToast('Synced from Google Fit');
@@ -725,23 +730,20 @@ async function syncAll() {
 }
 
 // ── DATA PROCESSING ───────────────────────────────────
-function processAll(stepsRaw, calRaw, hrRaw, hpRaw) {
+function processAll(stepsRaw, calRaw, hpRaw) {
   const DAY = 86400000, now = Date.now();
-  const labels=[], stepsArr=[], calArr=[], hrArr=[], hpArr=[];
+  const labels=[], stepsArr=[], calArr=[], hpArr=[];
 
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now - i*DAY);
     labels.push(d.toLocaleDateString('en-US',{weekday:'short'}));
     stepsArr.push(extractSum(stepsRaw.bucket[6-i], 'intVal') || 0);
     calArr.push(Math.round(extractSum(calRaw.bucket[6-i], 'fpVal')) || 0);
-    // HR: try fpVal (standard) then intVal fallback
-    const hrVal = extractAvg(hrRaw.bucket[6-i], 'fpVal') || extractAvg(hrRaw.bucket[6-i], 'intVal') || null;
-    hrArr.push(hrVal);
     // Heart Points (com.google.heart_minutes) — works on phone without wearable
     hpArr.push(Math.round(extractSum(hpRaw.bucket[6-i], 'fpVal') || extractSum(hpRaw.bucket[6-i], 'intVal')) || 0);
   }
 
-  fitData = { labels, steps:stepsArr, calories:calArr, hrArr, heartPts:hpArr };
+  fitData = { labels, steps:stepsArr, calories:calArr, heartPts:hpArr };
 
   const w         = weekNum();
   const stepGoal  = w<=2 ? 4000 : w<=4 ? 6000 : 8000;
@@ -752,7 +754,6 @@ function processAll(stepsRaw, calRaw, hrRaw, hpRaw) {
   const todayKm    = parseFloat((todaySteps * 0.00075).toFixed(1));
   const todayCal   = calArr[6] || 0;
   const todayHP    = hpArr[6] || 0;
-  const todayHR    = hrArr[6] || null; // null if phone-only
 
   const stepPct    = Math.min(100, Math.round(todaySteps / stepGoal * 100));
   const distPct    = Math.min(100, Math.round(todayKm    / distGoal * 100));
@@ -776,18 +777,12 @@ function processAll(stepsRaw, calRaw, hrRaw, hpRaw) {
   document.getElementById('s-pts-sub').textContent = hpPct + '% of ' + hpGoal + ' pt goal';
   document.getElementById('s-pts-bar').style.width = hpPct + '%';
   if (hpPct >= 100) document.getElementById('stat-pts').classList.add('done');
-  if (todayHP > 0) {
-    document.getElementById('hr-pts-info').style.display = 'block';
-    document.getElementById('hr-pts-val').textContent = todayHP;
-  }
 
-  // Heart rate — from wearable sensor if available
-  renderHR(todayHR);
 
   // Goals, hero, tips, charts
   renderGoals(todaySteps, todayKm, todayHP, stepGoal, distGoal, hpGoal, stepPct, distPct, hpPct);
   renderHero(todaySteps, todayKm, todayHP, stepGoal, distGoal, hpGoal, stepPct, distPct, hpPct);
-  renderTips(todaySteps, todayKm, todayHP, stepGoal, hpGoal, todayHR);
+  renderTips(todaySteps, todayKm, todayHP, stepGoal, hpGoal);
   renderCharts();
   renderPrediction(stepsArr, w);
 }
@@ -804,86 +799,6 @@ function extractAvg(bucket, field) {
   let s = 0, c = 0;
   bucket.dataset.forEach(ds => ds.point?.forEach(p => p.value?.forEach(v => { if (v[field]) { s += v[field]; c++; } })));
   return c ? Math.round(s/c) : null;
-}
-
-// ── HEART RATE ────────────────────────────────────────
-function renderHR(bpm) {
-  const store = load();
-  const manualBpm = store.manualHR || null;
-  const displayBpm = bpm || manualBpm;
-
-  if (displayBpm) {
-    document.getElementById('hr-bpm').textContent = displayBpm;
-    const srcEl = document.getElementById('hr-src');
-    if (bpm) {
-      srcEl.textContent = 'From Google Fit';
-      srcEl.className = 'hr-src hr-src-fit';
-    } else {
-      srcEl.textContent = 'Manual entry';
-      srcEl.className = 'hr-src hr-src-manual';
-    }
-
-    let status = '', color = 'var(--text2)';
-    if (displayBpm <= 60) { status = 'Excellent resting HR — strong cardiovascular fitness building.'; color = 'var(--green)'; }
-    else if (displayBpm <= 72) { status = 'Healthy resting HR. You are building a solid aerobic base.'; color = 'var(--green)'; }
-    else if (displayBpm <= 85) { status = 'Normal resting HR. Expect it to gradually drop as your fitness improves over weeks.'; }
-    else if (displayBpm <= 100) { status = 'Slightly elevated HR — make sure you are well rested and hydrated today.'; color = 'var(--amber)'; }
-    else { status = 'High resting HR — take it easy today and see a doctor if it persists.'; color = 'var(--red)'; }
-
-    document.getElementById('hr-status').textContent = status;
-    document.getElementById('hr-status').style.color = color;
-
-    // Zones based on measured bpm
-    const maxHR = 190;
-    const zones = [
-      { id:'z1', min:0,    max:0.60, color:'#2da868' },
-      { id:'z2', min:0.60, max:0.70, color:'#3b7dd8' },
-      { id:'z3', min:0.70, max:0.80, color:'#c47d0e' },
-      { id:'z4', min:0.80, max:0.90, color:'#d94040' },
-      { id:'z5', min:0.90, max:1.00, color:'#8b1c1c' },
-    ];
-    // Estimate time in each zone based on resting HR vs max
-    const restRatio = displayBpm / maxHR;
-    const raw = [40, 35, 15, 7, 3]; // typical beginner distribution
-    const total = raw.reduce((a,b)=>a+b,0);
-    zones.forEach((z,i) => {
-      const p = raw[i];
-      document.getElementById(z.id).style.width = p + '%';
-      document.getElementById(z.id).style.background = z.color;
-      document.getElementById(z.id+'p').textContent = p + '%';
-    });
-    document.getElementById('hr-zones').style.display = 'flex';
-  } else {
-    document.getElementById('hr-bpm').textContent = '—';
-    document.getElementById('hr-src').textContent = 'No data';
-    document.getElementById('hr-src').className = 'hr-src hr-src-none';
-    document.getElementById('hr-status').textContent = 'Google Fit on phone cannot auto-read HR without a wearable. Tap "Measure now" to log it manually using your phone camera.';
-    document.getElementById('hr-status').style.color = 'var(--text2)';
-  }
-}
-
-function toggleHrPanel() {
-  const p = document.getElementById('hr-panel');
-  p.style.display = p.style.display === 'block' ? 'none' : 'block';
-}
-
-function saveHR() {
-  const val = parseInt(document.getElementById('hr-input').value);
-  if (!val || val < 30 || val > 220) { showToast('Enter a valid number between 30 and 220'); return; }
-  const store = load();
-  store.manualHR = val;
-  const today = new Date().toDateString();
-  if (!store['hr_xp_'+today]) {
-    store['hr_xp_'+today] = true;
-    store.totalXP = (store.totalXP||0) + 20;
-    if (!store.pts_log) store.pts_log = [];
-    store.pts_log.unshift({ desc:'Heart rate logged', pts:20, time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) });
-  }
-  save(store);
-  renderHR(null); // will pick up manualHR from store
-  document.getElementById('hr-panel').style.display = 'none';
-  renderRewards();
-  showToast('+20 XP — heart rate saved!');
 }
 
 // ── GOALS — auto evaluated from Fit data ─────────────
@@ -1014,7 +929,7 @@ function renderHero(steps, km, hp, stepGoal, distGoal, hpGoal, stepPct, distPct,
 }
 
 // ── TIPS ──────────────────────────────────────────────
-function renderTips(steps, km, hp, stepGoal, hpGoal, hr) {
+function renderTips(steps, km, hp, stepGoal, hpGoal) {
   const w = weekNum(), tips = [];
 
   if (steps === 0)
@@ -1036,8 +951,7 @@ function renderTips(steps, km, hp, stepGoal, hpGoal, hr) {
   else if (w >= 3)
     tips.push({ic:'🏃', bg:'var(--blue-l)', title:'Jog slow to build fast', body:'Keep your jog slow enough to speak full sentences. That is Zone 2 — the zone that builds your aerobic engine. Speed comes naturally in weeks 6–8.'});
 
-  if (!hr)
-    tips.push({ic:'❤️', bg:'var(--blue-l)', title:'Measure your resting HR', body:'Open Google Fit — scroll to the Heart Rate card — tap it — place finger on rear camera — hold 30 sec. Log it in the Heart Rate section. Watching it drop week by week is the best fitness tracker.'});
+
 
   document.getElementById('tips-card').innerHTML = tips.map(t =>
     `<div class="tip"><div class="tip-ic" style="background:${t.bg}">${t.ic}</div><div><div class="tip-title">${t.title}</div><div class="tip-body">${t.body}</div></div></div>`
