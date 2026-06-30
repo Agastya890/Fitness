@@ -470,7 +470,7 @@ function weekNum() { return Math.min(8, Math.ceil(dayNum()/7)); }
 // ── PLAN DATA ─────────────────────────────────────────
 const PLAN = [
   {w:1,name:'Walk Every Day',bc:'wb-walk',emoji:'🚶',goal:'20–30 min walk daily. No running yet.',km:'~35 km/wk',
-   days:[{d:'Mon',t:'20 min easy walk',dist:'~1.5 km',done:true},{d:'Tue',t:'25 min easy walk',dist:'~2 km',today:true},{d:'Wed',t:'25 min walk',dist:'~2 km'},{d:'Thu',t:'30 min walk',dist:'~2.5 km'},{d:'Fri',t:'Rest or stretch',dist:'—'},{d:'Sat',t:'35 min walk',dist:'~3 km'},{d:'Sun',t:'Full rest',dist:'—'}]},
+   days:[{d:'Mon',t:'20 min easy walk',dist:'~1.5 km'},{d:'Tue',t:'25 min easy walk',dist:'~2 km'},{d:'Wed',t:'25 min walk',dist:'~2 km'},{d:'Thu',t:'30 min walk',dist:'~2.5 km'},{d:'Fri',t:'Rest or stretch',dist:'—'},{d:'Sat',t:'35 min walk',dist:'~3 km'},{d:'Sun',t:'Full rest',dist:'—'}]},
   {w:2,name:'Walk Faster',bc:'wb-walk',emoji:'🚶‍♂️',goal:'Brisk walk 30–40 min. Feel slightly breathless.',km:'~35 km/wk',
    days:[{d:'Mon',t:'30 min brisk walk',dist:'~2.5 km'},{d:'Tue',t:'35 min brisk walk',dist:'~3 km'},{d:'Wed',t:'Rest / stretch',dist:'—'},{d:'Thu',t:'40 min brisk walk',dist:'~3.5 km'},{d:'Fri',t:'20 min easy walk',dist:'~1.5 km'},{d:'Sat',t:'45 min brisk walk',dist:'~4 km'},{d:'Sun',t:'Rest',dist:'—'}]},
   {w:3,name:'First Jog Intervals',bc:'wb-walkrun',emoji:'🏃',goal:'Walk 4 min, jog 1 min × 4. Your first run!',km:'~45 km/wk',
@@ -761,22 +761,39 @@ function autoXP(results, totalEarned) {
   const today   = new Date().toDateString();
   const key     = 'xp_day_' + today;
   const prev    = store[key] || 0;
-  const delta   = totalEarned - prev;
-  if (delta <= 0) return;
-  store[key]    = totalEarned;
-  store.totalXP = (store.totalXP||0) + delta;
-  if (!store.pts_log) store.pts_log = [];
-  results.filter(r => r.earned > 0).forEach(r => {
-    const lk = 'logged_' + today + '_' + r.metric;
-    if (!store[lk]) {
-      store[lk] = true;
-      store.pts_log.unshift({ desc: r.text, pts: r.earned, time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) });
-    }
-  });
-  if (store.pts_log.length > 30) store.pts_log = store.pts_log.slice(0,30);
-  // Streak
+
+  // Only ADD XP — never deduct. If today's earned is less than what we already
+  // awarded (e.g. Fit numbers temporarily dropped during sync), keep the higher value.
+  if (totalEarned > prev) {
+    const delta   = totalEarned - prev;
+    store[key]    = totalEarned;
+    store.totalXP = (store.totalXP || 0) + delta;
+    if (!store.pts_log) store.pts_log = [];
+    results.filter(r => r.earned > 0).forEach(r => {
+      const lk = 'logged_' + today + '_' + r.metric;
+      if (!store[lk]) {
+        store[lk] = true;
+        store.pts_log.unshift({ desc: r.text, pts: r.earned, time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) });
+      }
+    });
+    if (store.pts_log.length > 60) store.pts_log = store.pts_log.slice(0,60);
+  }
+
+  // Snapshot today's totals so we can show history per day (and prevent data loss)
+  if (!store.day_history) store.day_history = {};
+  store.day_history[today] = {
+    xp: store[key] || 0,
+    day_num: dayNum(),
+    date: today,
+  };
+
+  // ── STREAK — credit yesterday + light activity even if XP=0 ──
+  // The streak now only requires the user OPENED the app + had any step data.
+  // This prevents losing the streak if you just glance at the app early in the day.
   const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
-  if (store.lastDay !== today) {
+  const todaySteps = (fitData.steps && fitData.steps[6]) || 0;
+  if (store.lastDay !== today && todaySteps > 100) {
+    // Streak rolls forward if yesterday was logged, else resets to 1
     store.streak = store.lastDay === yesterday.toDateString() ? (store.streak||0)+1 : 1;
     store.lastDay = today;
   }
@@ -916,9 +933,14 @@ function renderJourney() {
   }).join('');
 }
 
-// ── PLAN ──────────────────────────────────────────────
+// ── PLAN — computes "today" and "done" status dynamically ─
 function renderPlan() {
   const w = weekNum();
+  // What day of week is today? Mon=0, Tue=1, ..., Sun=6 (matching PLAN.days[].d order)
+  const DAY_ORDER = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const jsDay = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const todayIdx = jsDay === 0 ? 6 : jsDay - 1; // convert to Mon=0 .. Sun=6
+
   document.getElementById('plan-container').innerHTML = PLAN.map((p,wi) => {
     const isActive = wi===w-1, isPast = wi<w-1;
     return `<div class="week-block">
@@ -926,10 +948,17 @@ function renderPlan() {
         <div class="week-hdr-name">${isPast?'✅ ':isActive?'📍 ':'🔒 '}Week ${p.w} — ${p.name}</div>
         <span class="wbadge ${p.bc}">${p.bc.replace('wb-','')}</span>
       </div>
-      ${isActive||isPast?`<div class="week-card">${p.days.map(d=>`<div class="day-row">
-        <div class="day-n">${d.d}</div><div class="day-t">${d.t}</div><div class="day-d">${d.dist}</div>
-        <div class="chk ${d.today?'chk-t':d.done?'chk-y':'chk-n'}">${d.today?'▶':d.done?'✓':'·'}</div>
-      </div>`).join('')}</div>`:''}</div>`;
+      ${isActive||isPast?`<div class="week-card">${p.days.map((d,di)=>{
+        // Mark days that have passed THIS week as done (only in active week)
+        const isToday = isActive && di === todayIdx;
+        const isDoneDay = (isPast) || (isActive && di < todayIdx);
+        const cls = isToday ? 'chk-t' : isDoneDay ? 'chk-y' : 'chk-n';
+        const sym = isToday ? '▶' : isDoneDay ? '✓' : '·';
+        return `<div class="day-row">
+          <div class="day-n">${d.d}</div><div class="day-t">${d.t}</div><div class="day-d">${d.dist}</div>
+          <div class="chk ${cls}">${sym}</div>
+        </div>`;
+      }).join('')}</div>`:''}</div>`;
   }).join('');
 }
 
