@@ -716,12 +716,12 @@ function renderGoals(steps, km, hp, stepGoal, distGoal, hpGoal, stepPct, distPct
   const defs = GOALS_BY_WEEK[w-1];
 
   const results = defs.map(g => {
-    let pct = 0;
-    if (g.metric === 'steps')   pct = stepPct;
-    if (g.metric === 'dist')    pct = distPct;
-    if (g.metric === 'heartpts') pct = hpPct;
+    let pct = 0, actual = 0, target = 0, unit = '';
+    if (g.metric === 'steps')    { pct = stepPct;  actual = steps; target = stepGoal; unit = 'steps'; }
+    if (g.metric === 'dist')     { pct = distPct;  actual = km;    target = distGoal; unit = 'km'; }
+    if (g.metric === 'heartpts') { pct = hpPct;    actual = hp;    target = hpGoal;   unit = 'heart pts'; }
     const earned = Math.round(g.pts * pct / 100);
-    return { ...g, pct, earned, done: pct >= 100 };
+    return { ...g, pct, earned, done: pct >= 100, actual, target, unit };
   });
 
   const totalEarned = results.reduce((a,r)=>a+r.earned,0);
@@ -731,12 +731,17 @@ function renderGoals(steps, km, hp, stepGoal, distGoal, hpGoal, stepPct, distPct
     const barColor = r.done ? 'var(--green)' : r.pct > 50 ? 'var(--blue)' : '#c47d0e';
     const chkClass = r.done ? 'goal-chk-done' : r.pct > 0 ? 'goal-chk-prog' : 'goal-chk-none';
     const chkText  = r.done ? '✓' : r.pct > 0 ? r.pct+'%' : '·';
+    const actualFmt = r.unit === 'steps' ? r.actual.toLocaleString() : r.actual;
+    const targetFmt = r.unit === 'steps' ? r.target.toLocaleString() : r.target;
+    const progressText = r.done
+      ? `${actualFmt} ${r.unit} — goal reached! ✓`
+      : `${actualFmt} / ${targetFmt} ${r.unit}`;
     return `<div class="goal-row">
       <div class="goal-chk ${chkClass}">${chkText}</div>
       <div class="goal-body">
         <div class="goal-text">${r.text}</div>
         <div class="goal-mini-bar"><div class="goal-mini-fill" style="width:${r.pct}%;background:${barColor}"></div></div>
-        <div class="goal-meta">${r.pct}% complete</div>
+        <div class="goal-meta" style="color:${r.done?'var(--green)':r.pct>0?'var(--text2)':'var(--text3)'}">${progressText}</div>
       </div>
       <div class="goal-pts" style="color:${r.done?'var(--green)':r.pct>0?'var(--blue)':'var(--text3)'}">${r.earned > 0 ? '+'+r.earned : '—'}</div>
     </div>`;
