@@ -236,6 +236,45 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
 .chk-t { background: var(--blue-l); color: var(--blue); }
 .chk-n { background: var(--surface2); color: var(--text3); }
 
+/* COACH */
+.coach-hero { display: flex; gap: 12px; background: linear-gradient(135deg,#eef3fc,#eaf6f0); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
+.coach-hero-ic { font-size: 30px; flex-shrink: 0; line-height: 1.2; }
+.coach-hero-lbl { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 4px; }
+.coach-hero-msg { font-size: 14px; line-height: 1.55; color: var(--text); font-weight: 500; }
+.score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.score-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 10px; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.score-ring { position: relative; width: 84px; height: 84px; }
+.score-ring-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.score-num { font-size: 24px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+.score-lbl { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+.score-tag { font-size: 11px; font-weight: 600; padding: 3px 11px; border-radius: 20px; background: var(--surface2); color: var(--text2); }
+.breakdown { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 14px; margin-bottom: 14px; box-shadow: var(--shadow); }
+.bd-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.bd-row:last-child { border-bottom: none; }
+.bd-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.bd-text { flex: 1; color: var(--text2); line-height: 1.4; }
+.bd-val { font-family: var(--mono); font-weight: 600; font-size: 12px; white-space: nowrap; }
+.race-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); margin-bottom: 14px; }
+.race-pace-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--text2); margin-bottom: 12px; }
+.race-pace-row b { font-family: var(--mono); color: var(--text); font-weight: 600; }
+.race-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.race-cell { background: var(--surface2); border-radius: 9px; padding: 11px 10px; text-align: center; }
+.race-dist { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin-bottom: 3px; }
+.race-now { font-size: 20px; font-weight: 700; font-family: var(--mono); color: var(--blue); line-height: 1; }
+.race-proj { font-size: 11px; color: var(--green); font-family: var(--mono); margin-top: 4px; }
+.race-note { background: var(--blue-l); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--blue-d); line-height: 1.5; margin-top: 12px; }
+.chat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); margin-bottom: 14px; }
+.chat-log { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; margin-bottom: 10px; }
+.chat-msg { font-size: 13px; line-height: 1.5; padding: 9px 12px; border-radius: 12px; max-width: 85%; }
+.chat-bot { background: var(--surface2); color: var(--text); align-self: flex-start; border-bottom-left-radius: 3px; }
+.chat-user { background: var(--blue); color: #fff; align-self: flex-end; border-bottom-right-radius: 3px; }
+.chat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chat-chip { font-size: 11px; font-weight: 500; background: var(--blue-l); color: var(--blue); border: none; border-radius: 16px; padding: 5px 11px; cursor: pointer; font-family: var(--font); }
+.chat-input-row { display: flex; gap: 8px; }
+.chat-input { flex: 1; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 9px; padding: 10px 12px; font-size: 14px; color: var(--text); font-family: var(--font); outline: none; }
+.chat-input:focus { border-color: var(--blue); }
+.chat-send { background: var(--blue); color: #fff; border: none; border-radius: 9px; padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); }
+
 /* CELEBRATE */
 .celebrate { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 999; opacity: 0; pointer-events: none; transition: opacity .2s; }
 .celebrate.show { opacity: 1; pointer-events: auto; }
@@ -300,6 +339,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
 
   <div class="tabs">
     <button class="tab active" onclick="showPane('today',this)">Today</button>
+    <button class="tab" onclick="showPane('coach',this)">Coach</button>
     <button class="tab" onclick="showPane('rewards',this)">Rewards</button>
     <button class="tab" onclick="showPane('journey',this)">Journey</button>
     <button class="tab" onclick="showPane('plan',this)">Plan</button>
@@ -355,6 +395,64 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
 
     <div class="sec">Coaching</div>
     <div class="tip-card" id="tips-card"><div style="color:var(--text3);font-size:13px;padding:.5rem 0">Syncing…</div></div>
+  </div>
+
+  <!-- COACH -->
+  <div class="pane" id="pane-coach">
+    <!-- AI coach message -->
+    <div class="coach-hero">
+      <div class="coach-hero-ic">🧠</div>
+      <div>
+        <div class="coach-hero-lbl">Your AI Coach says</div>
+        <div class="coach-hero-msg" id="coach-msg">Sync your Google Fit data and I'll analyze your week.</div>
+      </div>
+    </div>
+
+    <div class="sec">Scores</div>
+    <div class="score-grid">
+      <div class="score-card">
+        <div class="score-ring">
+          <svg width="84" height="84" viewBox="0 0 84 84">
+            <circle cx="42" cy="42" r="34" fill="none" stroke="#e4e6ea" stroke-width="7"/>
+            <circle id="health-arc" cx="42" cy="42" r="34" fill="none" stroke="#2da868" stroke-width="7" stroke-linecap="round" stroke-dasharray="214" stroke-dashoffset="214" transform="rotate(-90 42 42)"/>
+          </svg>
+          <div class="score-ring-inner"><div class="score-num" id="health-num">—</div><div class="score-lbl">Health</div></div>
+        </div>
+        <div class="score-tag" id="health-tag">Awaiting data</div>
+      </div>
+      <div class="score-card">
+        <div class="score-ring">
+          <svg width="84" height="84" viewBox="0 0 84 84">
+            <circle cx="42" cy="42" r="34" fill="none" stroke="#e4e6ea" stroke-width="7"/>
+            <circle id="recovery-arc" cx="42" cy="42" r="34" fill="none" stroke="#3b7dd8" stroke-width="7" stroke-linecap="round" stroke-dasharray="214" stroke-dashoffset="214" transform="rotate(-90 42 42)"/>
+          </svg>
+          <div class="score-ring-inner"><div class="score-num" id="recovery-num">—</div><div class="score-lbl">Recovery</div></div>
+        </div>
+        <div class="score-tag" id="recovery-tag">Awaiting data</div>
+      </div>
+    </div>
+    <div class="breakdown" id="score-breakdown"></div>
+
+    <div class="sec">Smart insights</div>
+    <div class="tip-card" id="insights-card"><div style="color:var(--text3);font-size:13px;padding:.5rem 0">Sync to generate insights.</div></div>
+
+    <div class="sec">Patterns detected</div>
+    <div class="tip-card" id="patterns-card"><div style="color:var(--text3);font-size:13px;padding:.5rem 0">No patterns yet.</div></div>
+
+    <div class="sec">Race-time predictor</div>
+    <div class="race-card" id="race-card"><div style="color:var(--text3);font-size:13px;padding:.5rem 0">Sync to estimate your finish times.</div></div>
+
+    <div class="sec">Ask your coach</div>
+    <div class="chat-card">
+      <div class="chat-log" id="chat-log">
+        <div class="chat-msg chat-bot">Hi! Ask me anything — try "Am I ready for 10K?", "Should I rest today?", or "How can I improve endurance?"</div>
+      </div>
+      <div class="chat-chips" id="chat-chips"></div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chat-input" placeholder="Ask your coach…" onkeydown="if(event.key==='Enter')sendCoachMsg()">
+        <button class="chat-send" onclick="sendCoachMsg()">Send</button>
+      </div>
+    </div>
   </div>
 
   <!-- REWARDS -->
@@ -692,7 +790,8 @@ function processAll(stepsRaw, calRaw, hpRaw) {
   renderHero(todaySteps, todayKm, todayHP, stepGoal, distGoal, hpGoal, stepPct, distPct, hpPct);
   renderTips(todaySteps, todayKm, todayHP, stepGoal, hpGoal);
   renderCharts();
-  renderPrediction(stepsArr, w);
+  renderCoach();        // computes coachState (the shared engine)
+  renderPrediction();   // Stats card reads coachState — must run after renderCoach
 
 }
 
@@ -1083,25 +1182,281 @@ function renderCharts() {
     options:{...base, plugins:{...base.plugins,tooltip:{callbacks:{label:c=>c.parsed.y+' heart pts'}}}}});
 }
 
-// ── RACE PREDICTION ───────────────────────────────────
-function renderPrediction(stepsArr, w) {
-  const paces = [9.5,9,8.5,8,7.5,7,6.5,6];
-  const pace  = paces[w-1];
-  const total = pace * 10;
-  const mm = Math.floor(total), ss = Math.round((total%1)*60).toString().padStart(2,'0');
-  const tMin = Math.max(50, total-8);
-  const tm = Math.floor(tMin), ts = Math.round((tMin%1)*60).toString().padStart(2,'0');
+// ── RACE PREDICTION (Stats tab) ───────────────────────
+// Reads from the same coach engine as the Coach tab so the numbers never drift.
+function renderPrediction() {
+  if (!coachState) return; // renderCoach() populates coachState first
+  document.getElementById('pred-card').innerHTML = raceCardHTML(coachState);
+}
 
-  document.getElementById('pred-card').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-      <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Current 10K estimate</div>
-        <div style="font-size:28px;font-weight:700;font-family:var(--mono);color:var(--blue)">${mm}:${ss}</div>
-        <div style="font-size:11px;color:var(--text3)">at week ${w} fitness</div></div>
-      <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Race day target</div>
-        <div style="font-size:28px;font-weight:700;font-family:var(--mono);color:var(--green)">${tm}:${ts}</div>
-        <div style="font-size:11px;color:var(--text3)">by week 8</div></div>
+// ══════════════════════════════════════════════════════
+// AI COACH — on-device rules engine (no API, runs on your data)
+// ══════════════════════════════════════════════════════
+let coachState = null;
+
+function mean(a){ return a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0; }
+
+// Format minutes → "H:MM:SS" (or "M:SS" under an hour); pace → "M:SS"
+function fmtTime(min){
+  const sec = Math.round(min*60);
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  return h>0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+             : `${m}:${String(s).padStart(2,'0')}`;
+}
+function fmtPace(p){
+  let m = Math.floor(p), s = Math.round((p-m)*60);
+  if (s === 60) { m++; s = 0; }
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+// Build the full intelligence object from fitData. Single source of truth
+// for the scores, insights, patterns AND the chatbot — so every surface agrees.
+function computeIntelligence() {
+  const steps = fitData.steps || [], hp = fitData.heartPts || [], cal = fitData.calories || [];
+  if (steps.length < 7) return null;
+
+  const w        = weekNum();
+  const stepGoal = w<=2 ? 9000 : w<=4 ? 11000 : w<=6 ? 13000 : 14000;
+  const hpGoal   = w<=2 ? 30   : w<=4 ? 40    : w<=6 ? 50    : 60;
+
+  const avgSteps  = Math.round(mean(steps));
+  const avgHP     = Math.round(mean(hp));
+  const first3    = mean(steps.slice(0,3));
+  const last3     = mean(steps.slice(4,7));
+  const trendPct  = first3 > 0 ? Math.round((last3 - first3) / first3 * 100) : 0;
+  const activeDays= steps.filter(s => s >= stepGoal * 0.5).length;
+  const restDays  = steps.filter(s => s < stepGoal * 0.35).length;
+  const bestIdx   = steps.indexOf(Math.max(...steps));
+  const worstIdx  = steps.indexOf(Math.min(...steps));
+  const today     = steps[6] || 0, yest = steps[5] || 0;
+  const todayHP   = hp[6] || 0;
+
+  // ── HEALTH SCORE (0–100) — every point is explainable ──
+  const hActivity = Math.min(30, Math.round(avgSteps / stepGoal * 30));
+  const hIntensity= Math.min(25, Math.round(avgHP / hpGoal * 25));
+  const hConsist  = Math.round(activeDays / 7 * 25);
+  const hTrend    = trendPct >= 10 ? 20 : trendPct >= 0 ? 14 : trendPct >= -10 ? 8 : 3;
+  const health    = Math.min(100, hActivity + hIntensity + hConsist + hTrend);
+
+  // ── RECOVERY SCORE (0–100) — higher = more ready to train hard ──
+  const load3 = hp.slice(4,7).reduce((a,b)=>a+b,0);
+  let recovery = 100;
+  const recDeduct = [];
+  if (load3 > hpGoal * 3 * 1.2) { recovery -= 30; recDeduct.push({t:'Heavy 3-day training load — your body needs recovery', v:'-30'}); }
+  else if (load3 > hpGoal * 3)  { recovery -= 15; recDeduct.push({t:'Solid recent load — moderate fatigue building', v:'-15'}); }
+  const hadRest = steps.slice(4,7).some(s => s < stepGoal * 0.35);
+  if (!hadRest) { recovery -= 15; recDeduct.push({t:'No light/rest day in the last 3 days', v:'-15'}); }
+  if (yest > stepGoal * 1.25) { recovery -= 10; recDeduct.push({t:'Yesterday was very high volume', v:'-10'}); }
+  recovery = Math.max(35, recovery);
+  if (recDeduct.length === 0) recDeduct.push({t:'Balanced load and rest — well recovered', v:'full'});
+
+  // ── INSIGHTS — explain WHY, don't just state numbers ──
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dLabel = i => fitData.labels[i] || days[i];
+  const insights = [];
+  if (trendPct >= 10)
+    insights.push({ic:'📈',bg:'var(--green-l)',title:`Activity up ${trendPct}% this week`,body:`Your last 3 days averaged ${Math.round(last3).toLocaleString()} steps vs ${Math.round(first3).toLocaleString()} earlier — momentum is building because you've been consistent.`});
+  else if (trendPct <= -10)
+    insights.push({ic:'📉',bg:'var(--red-l)',title:`Activity down ${Math.abs(trendPct)}% this week`,body:`Steps dropped from ${Math.round(first3).toLocaleString()} to ${Math.round(last3).toLocaleString()}. Likely fatigue or a busy schedule — a short easy walk today restarts the trend.`});
+  else
+    insights.push({ic:'➡️',bg:'var(--blue-l)',title:'Steady week',body:`You've held around ${avgSteps.toLocaleString()} steps/day. Consistency is the foundation — now nudge a couple of days higher to progress.`});
+
+  if (bestIdx !== worstIdx)
+    insights.push({ic:'⭐',bg:'var(--amber-l)',title:`${dLabel(bestIdx)} is your strongest day`,body:`You logged ${steps[bestIdx].toLocaleString()} steps on ${dLabel(bestIdx)} and only ${steps[worstIdx].toLocaleString()} on ${dLabel(worstIdx)}. Try to protect that ${dLabel(worstIdx)} slot with even a short walk.`});
+
+  insights.push({ic:'❤️',bg:'#fdf0f0',title:`${avgHP} avg heart points/day`,body: avgHP >= hpGoal
+    ? `You're clearing the ${hpGoal}-point intensity goal — your walks are brisk enough to build real aerobic fitness.`
+    : `You're at ${avgHP} vs a ${hpGoal}-point goal. Walk faster in bursts — intensity, not just steps, drives heart-health gains.`});
+
+  // ── PATTERN DETECTION ──
+  const patterns = [];
+  if (trendPct >= 12) patterns.push({ic:'🚀',bg:'var(--green-l)',title:'Improving endurance',body:'Your daily volume is climbing steadily — a reliable sign your aerobic base is growing.'});
+  if (Math.abs(trendPct) < 5 && activeDays >= 4) patterns.push({ic:'🪨',bg:'var(--amber-l)',title:'Plateau forming',body:'You\'ve been flat for several days. Add one longer session this week to break through.'});
+  if (restDays >= 3) patterns.push({ic:'😴',bg:'var(--blue-l)',title:`${restDays} low-activity days`,body:'Several near-rest days this week. A little more consistency will compound fast.'});
+  if (recovery < 55) patterns.push({ic:'⚠️',bg:'var(--red-l)',title:'Early overtraining signal',body:'High load with little rest. Take a deliberate easy day to avoid burnout and injury.'});
+  if (activeDays >= 5) patterns.push({ic:'🔥',bg:'var(--green-l)',title:'Strong consistency',body:`${activeDays} of 7 days hit at least half your goal — this is exactly how 10K fitness is built.`});
+  if (patterns.length === 0) patterns.push({ic:'🔍',bg:'var(--surface2)',title:'Building your baseline',body:'A few more days of data and I\'ll surface trends, plateaus and recovery patterns.'});
+
+  // ── RACE-TIME PREDICTOR — data-driven, not just week-based ──
+  // Base pace per training week, then adjust by how the user is actually
+  // performing vs their goals. Fitter-than-target → faster; behind → slower.
+  const paceByWeek = [9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6]; // min/km
+  const fitFactor  = ((avgSteps / stepGoal) + (avgHP / hpGoal)) / 2; // ~1.0 = on target
+  const adj        = Math.max(-0.6, Math.min(0.6, (fitFactor - 1) * 1.2)); // ±0.6 min/km
+  const curPace    = +(paceByWeek[w-1] - adj).toFixed(2);
+  const projPace   = +(paceByWeek[7]   - adj).toFixed(2); // week-8 race-day fitness
+  const DISTS = [{label:'5K',d:5},{label:'10K',d:10},{label:'Half',d:21.1},{label:'Full',d:42.2}];
+  const race = {
+    curPace, projPace, fitFactor: +fitFactor.toFixed(2),
+    rows: DISTS.map(x => ({ label:x.label, now: curPace*x.d, proj: projPace*x.d })),
+  };
+
+  // ── HEADLINE COACH MESSAGE ──
+  let msg;
+  if (today === 0 && todayHP === 0)
+    msg = recovery >= 70 ? `You're well recovered (${recovery}/100). Today's a great day for a quality session — get moving!`
+                         : `Recovery is ${recovery}/100 — keep today light and easy to let your body absorb the work.`;
+  else
+    msg = `${today.toLocaleString()} steps so far. ` + (trendPct >= 0
+      ? `You're trending up — finish strong and protect the streak.`
+      : `Let's reverse this week's dip with a solid walk today.`);
+
+  return { w, stepGoal, hpGoal, avgSteps, avgHP, trendPct, activeDays, restDays,
+    bestDay:dLabel(bestIdx), worstDay:dLabel(worstIdx), today, todayHP,
+    health, healthParts:[
+      {t:'Activity (avg steps vs goal)',v:hActivity,max:30,c:'var(--blue)'},
+      {t:'Intensity (heart points)',v:hIntensity,max:25,c:'var(--red)'},
+      {t:'Consistency (active days)',v:hConsist,max:25,c:'var(--green)'},
+      {t:'Trend (week direction)',v:hTrend,max:20,c:'var(--amber)'},
+    ],
+    recovery, recDeduct, insights, patterns, race, msg };
+}
+
+function raceNote(c) {
+  const f = c.race.fitFactor, est10k = fmtTime(c.race.rows[1].now);
+  if (c.w >= 7) return `Race week! Your ${est10k} 10K estimate reflects current fitness — taper now, stay fresh and trust the work you've banked.`;
+  if (f >= 1)   return `You're hitting your targets, so these estimates already beat the plan's baseline. Times keep dropping as you reach the running weeks — assuming you stay consistent.`;
+  return `Estimates improve every week you train. Projected times assume you close the gap on your daily goals and keep showing up.`;
+}
+
+// Shared markup for the race predictor — used by BOTH the Coach tab and the
+// Stats tab so the two cards always read from the same engine and never drift.
+function raceCardHTML(c) {
+  const r = c.race;
+  return `
+    <div class="race-pace-row">
+      <div>Current pace <b>${fmtPace(r.curPace)} /km</b></div>
+      <div>Race-day target <b>${fmtPace(r.projPace)} /km</b></div>
     </div>
-    <div style="background:var(--blue-l);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--blue-d)">Each week you complete, your estimated finish time improves. Consistency beats speed.</div>`;
+    <div class="race-grid">
+      ${r.rows.map(row => `<div class="race-cell">
+        <div class="race-dist">${row.label}</div>
+        <div class="race-now">${fmtTime(row.now)}</div>
+        <div class="race-proj">→ ${fmtTime(row.proj)} by wk 8</div>
+      </div>`).join('')}
+    </div>
+    <div class="race-note">${raceNote(c)}</div>`;
+}
+
+function scoreTag(score){
+  if (score >= 80) return {t:'Excellent', c:'var(--green)', bg:'var(--green-l)'};
+  if (score >= 60) return {t:'Good',      c:'var(--blue)',  bg:'var(--blue-l)'};
+  if (score >= 45) return {t:'Fair',      c:'var(--amber)', bg:'var(--amber-l)'};
+  return              {t:'Needs work',    c:'var(--red)',   bg:'var(--red-l)'};
+}
+
+function renderCoach() {
+  coachState = computeIntelligence();
+  if (!coachState) return;
+  const c = coachState;
+
+  document.getElementById('coach-msg').textContent = c.msg;
+
+  // Score rings (circumference = 2πr, r=34 ≈ 214)
+  const CIRC = 214;
+  const hArc = document.getElementById('health-arc');
+  hArc.style.strokeDashoffset = CIRC - CIRC * c.health / 100;
+  const hTag = scoreTag(c.health);
+  hArc.style.stroke = hTag.c;
+  document.getElementById('health-num').textContent = c.health;
+  const hEl = document.getElementById('health-tag');
+  hEl.textContent = hTag.t; hEl.style.background = hTag.bg; hEl.style.color = hTag.c;
+
+  const rArc = document.getElementById('recovery-arc');
+  rArc.style.strokeDashoffset = CIRC - CIRC * c.recovery / 100;
+  const rTag = scoreTag(c.recovery);
+  rArc.style.stroke = rTag.c;
+  document.getElementById('recovery-num').textContent = c.recovery;
+  const rEl = document.getElementById('recovery-tag');
+  rEl.textContent = rTag.t; rEl.style.background = rTag.bg; rEl.style.color = rTag.c;
+
+  // Breakdown — explain every health point + recovery deductions
+  let bd = c.healthParts.map(p =>
+    `<div class="bd-row"><div class="bd-dot" style="background:${p.c}"></div><div class="bd-text">${p.t}</div><div class="bd-val" style="color:${p.c}">${p.v}/${p.max}</div></div>`
+  ).join('');
+  bd += c.recDeduct.map(d =>
+    `<div class="bd-row"><div class="bd-dot" style="background:var(--text3)"></div><div class="bd-text">Recovery: ${d.t}</div><div class="bd-val" style="color:${d.v==='full'?'var(--green)':'var(--red)'}">${d.v==='full'?'✓':d.v}</div></div>`
+  ).join('');
+  document.getElementById('score-breakdown').innerHTML = bd;
+
+  document.getElementById('insights-card').innerHTML = c.insights.map(t =>
+    `<div class="tip"><div class="tip-ic" style="background:${t.bg}">${t.ic}</div><div><div class="tip-title">${t.title}</div><div class="tip-body">${t.body}</div></div></div>`).join('');
+
+  document.getElementById('patterns-card').innerHTML = c.patterns.map(t =>
+    `<div class="tip"><div class="tip-ic" style="background:${t.bg}">${t.ic}</div><div><div class="tip-title">${t.title}</div><div class="tip-body">${t.body}</div></div></div>`).join('');
+
+  // Race-time predictor (shared markup — see raceCardHTML)
+  document.getElementById('race-card').innerHTML = raceCardHTML(c);
+
+  const chips = ['Am I ready for 10K?','Should I rest today?','How can I improve endurance?','How am I doing?'];
+  document.getElementById('chat-chips').innerHTML = chips.map(q =>
+    `<button class="chat-chip" onclick="askChip('${q.replace(/'/g,"\\'")}')">${q}</button>`).join('');
+}
+
+// ── RULE-BASED CHATBOT — answers from the user's own data ──
+function coachAnswer(qRaw) {
+  const q = qRaw.toLowerCase();
+  const c = coachState;
+  if (!c) return "Hit Sync first so I can read your Google Fit data — then ask me again.";
+
+  if (/(10k|10 k|ten k|half|marathon|5k|5 k|ready|race|finish time|how fast|how long)/.test(q)) {
+    const idx = /half/.test(q) ? 2 : /full marathon|marathon/.test(q) ? 3 : /5k|5 k|five/.test(q) ? 0 : 1;
+    const target = ['5K','10K','half marathon','full marathon'][idx];
+    const estNow = fmtTime(c.race.rows[idx].now), estProj = fmtTime(c.race.rows[idx].proj);
+    if (c.w >= 7) return `You're in week ${c.w} — race phase. At today's fitness I estimate a ${estNow} ${target} (health ${c.health}/100, recovery ${c.recovery}/100). Keep sessions easy now and trust the taper.`;
+    if (c.avgSteps >= c.stepGoal && c.trendPct >= 0) return `Progressing well (avg ${c.avgSteps.toLocaleString()} steps, +${c.trendPct}% trend). Estimated ${target} today is ~${estNow}, projecting to ~${estProj} by race week. Stay consistent and you'll be ready.`;
+    return `Not race-ready yet — you're in week ${c.w}. Current ${target} estimate is ~${estNow}, improving toward ~${estProj} by week 8. Follow the plan through the running weeks and it becomes very achievable.`;
+  }
+  if (/(rest|recover|day off|tired|fatigue|exhaust|sore)/.test(q)) {
+    if (c.recovery < 55) return `Yes — rest today. Your recovery is ${c.recovery}/100 ${c.restDays===0?'with no light days recently':''}. A gentle 15–20 min walk or full rest will let your body adapt and come back stronger.`;
+    if (c.recovery < 70) return `You're moderately recovered (${c.recovery}/100). A light-to-moderate session is fine, but skip anything hard. Listen to your legs.`;
+    return `You're well recovered (${c.recovery}/100) — no need to rest. Today's a good day to push a quality walk or jog.`;
+  }
+  if (/(improve|endurance|faster|better|fitness|stronger)/.test(q)) {
+    return `Two levers, based on your data: 1) Intensity — you average ${c.avgHP} heart points vs a ${c.hpGoal} goal, so add brisk pickups to earn more. 2) Consistency — you hit ${c.activeDays}/7 active days; closing the gaps on your ${c.worstDay}s will compound fastest.`;
+  }
+  if (/(heart rate|heart-rate|bpm|hr)/.test(q)) {
+    return `I'm tracking heart points (intensity) right now — you're averaging ${c.avgHP}/day. A higher reading usually means harder effort or less recovery; if it's unexpectedly high at rest, prioritise sleep and an easy day.`;
+  }
+  if (/(how am i|how'm i|doing|progress|status|summary|overall)/.test(q)) {
+    return `${c.msg} Overall: health ${c.health}/100, recovery ${c.recovery}/100, averaging ${c.avgSteps.toLocaleString()} steps with a ${c.trendPct>=0?'+':''}${c.trendPct}% trend. Your strongest day is ${c.bestDay}.`;
+  }
+  if (/(step|goal|today|how many)/.test(q)) {
+    const left = Math.max(0, c.stepGoal - c.today);
+    return c.today >= c.stepGoal
+      ? `You've smashed today's ${c.stepGoal.toLocaleString()} step goal with ${c.today.toLocaleString()} — brilliant.`
+      : `You're ${left.toLocaleString()} steps from today's ${c.stepGoal.toLocaleString()} goal (${c.today.toLocaleString()} so far). About a ${Math.ceil(left/100)}-minute walk closes it.`;
+  }
+  if (/(sleep|slept|rest at night)/.test(q)) {
+    return `I don't read sleep yet — that's a planned upgrade. For now I gauge recovery from your training load and rest days, which puts you at ${c.recovery}/100 today.`;
+  }
+  if (/(overtrain|burnout|too much)/.test(q)) {
+    return c.recovery < 55
+      ? `There's an early signal — recovery ${c.recovery}/100 from heavy load with little rest. Back off for a day or two.`
+      : `No overtraining signs — recovery is ${c.recovery}/100 and your load looks balanced. Carry on.`;
+  }
+  return `I read your activity, intensity, trend, recovery and consistency. Try asking about race readiness, whether to rest, how to improve endurance, or how you're doing overall.`;
+}
+
+function pushChat(text, who) {
+  const log = document.getElementById('chat-log');
+  const el = document.createElement('div');
+  el.className = 'chat-msg ' + (who === 'user' ? 'chat-user' : 'chat-bot');
+  el.textContent = text;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+function sendCoachMsg() {
+  const input = document.getElementById('chat-input');
+  const q = input.value.trim();
+  if (!q) return;
+  pushChat(q, 'user');
+  input.value = '';
+  setTimeout(() => pushChat(coachAnswer(q), 'bot'), 250);
+}
+function askChip(q) {
+  pushChat(q, 'user');
+  setTimeout(() => pushChat(coachAnswer(q), 'bot'), 250);
 }
 
 // ── PROFILE ───────────────────────────────────────────
