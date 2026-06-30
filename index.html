@@ -580,6 +580,13 @@ function launchApp() {
   renderPlan();
   syncAll();
   updateNotifUI();        // Reflects whatever state was saved + starts timer if enabled
+  // Always try to register SW if permission already granted — fixes case where
+  // user enabled in a previous session but SW never got installed.
+  if ('Notification' in window && Notification.permission === 'granted') {
+    registerNotifSW().then(reg => {
+      if (reg) console.log('SW registered on launch');
+    });
+  }
   scheduleMidnightRollover();
 }
 
@@ -843,20 +850,17 @@ function showDiagnostics() {
 }
 
 // ── SERVICE WORKER — for reliable mobile notifications ────
-// Registers an inline SW that just exists so reg.showNotification() works.
-// Without this, Chrome on Android often silently drops notifications.
+// Tries to register an external sw.js file (you should host this alongside index.html).
+// Falls back gracefully if not found — direct Notification() still works on desktop.
 async function registerNotifSW() {
   if (!('serviceWorker' in navigator)) return null;
   try {
-    // Use a data URL to keep everything in one file
-    const swCode = 'self.addEventListener("notificationclick",e=>{e.notification.close();e.waitUntil(clients.matchAll({type:"window"}).then(cs=>{for(const c of cs)if("focus"in c)return c.focus();if(clients.openWindow)return clients.openWindow("/")}))});';
-    const blob = new Blob([swCode], { type: 'application/javascript' });
-    const url = URL.createObjectURL(blob);
-    const reg = await navigator.serviceWorker.register(url, { scope: './' });
+    // Look for sw.js next to index.html
+    const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
     await navigator.serviceWorker.ready;
     return reg;
   } catch(e) {
-    console.warn('SW registration failed (this is OK on desktop):', e);
+    console.warn('sw.js not found — falling back to direct notifications (works on desktop):', e.message);
     return null;
   }
 }
