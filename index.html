@@ -350,19 +350,6 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
       <div class="stat" id="stat-pts"><span class="stat-icon">❤️</span><div class="stat-label">Heart Points</div><div class="stat-val" id="s-pts">—</div><div class="stat-sub" id="s-pts-sub">Goal: 10 pts/day</div><div class="stat-bar"><div class="stat-fill" id="s-pts-bar" style="width:0%;background:var(--red)"></div></div></div>
     </div>
 
-    <!-- Notifications toggle + diagnostics -->
-    <div style="background:var(--blue-l);border-radius:10px;padding:12px 14px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
-        <div id="notif-label" style="font-size:12px;color:var(--blue-d);flex:1">🔔 Get walk reminders every 5 min during 6 AM–11 PM</div>
-        <button id="notif-btn" onclick="toggleNotifications()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap;min-width:74px">Enable</button>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button onclick="testNotification()" style="background:var(--green);color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">🧪 Test Now</button>
-        <button onclick="showDiagnostics()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">🔍 Diagnose</button>
-      </div>
-      <div id="diag-output" style="display:none;margin-top:10px;padding:10px;background:var(--surface);border-radius:8px;font-family:var(--mono);font-size:11px;color:var(--text2);line-height:1.7;white-space:pre-wrap;border:1px solid var(--border)"></div>
-    </div>
-
     <div class="sec">Steps this week</div>
     <div class="chart-card"><div class="chart-wrap"><canvas id="stepsChart"></canvas></div></div>
 
@@ -482,19 +469,19 @@ function weekNum() { return Math.min(8, Math.ceil(dayNum()/7)); }
 
 // ── PLAN DATA ─────────────────────────────────────────
 const PLAN = [
-  {w:1,name:'Walk Every Day',bc:'wb-walk',emoji:'🚶',goal:'20–30 min walk daily. No running yet.',km:'~14 km/wk',
+  {w:1,name:'Walk Every Day',bc:'wb-walk',emoji:'🚶',goal:'20–30 min walk daily. No running yet.',km:'~35 km/wk',
    days:[{d:'Mon',t:'20 min easy walk',dist:'~1.5 km',done:true},{d:'Tue',t:'25 min easy walk',dist:'~2 km',today:true},{d:'Wed',t:'25 min walk',dist:'~2 km'},{d:'Thu',t:'30 min walk',dist:'~2.5 km'},{d:'Fri',t:'Rest or stretch',dist:'—'},{d:'Sat',t:'35 min walk',dist:'~3 km'},{d:'Sun',t:'Full rest',dist:'—'}]},
-  {w:2,name:'Walk Faster',bc:'wb-walk',emoji:'🚶‍♂️',goal:'Brisk walk 30–40 min. Feel slightly breathless.',km:'~22 km/wk',
+  {w:2,name:'Walk Faster',bc:'wb-walk',emoji:'🚶‍♂️',goal:'Brisk walk 30–40 min. Feel slightly breathless.',km:'~35 km/wk',
    days:[{d:'Mon',t:'30 min brisk walk',dist:'~2.5 km'},{d:'Tue',t:'35 min brisk walk',dist:'~3 km'},{d:'Wed',t:'Rest / stretch',dist:'—'},{d:'Thu',t:'40 min brisk walk',dist:'~3.5 km'},{d:'Fri',t:'20 min easy walk',dist:'~1.5 km'},{d:'Sat',t:'45 min brisk walk',dist:'~4 km'},{d:'Sun',t:'Rest',dist:'—'}]},
-  {w:3,name:'First Jog Intervals',bc:'wb-walkrun',emoji:'🏃',goal:'Walk 4 min, jog 1 min × 4. Your first run!',km:'~18 km/wk',
+  {w:3,name:'First Jog Intervals',bc:'wb-walkrun',emoji:'🏃',goal:'Walk 4 min, jog 1 min × 4. Your first run!',km:'~45 km/wk',
    days:[{d:'Mon',t:'Walk 4 + Jog 1 × 4',dist:'~2.5 km'},{d:'Tue',t:'30 min brisk walk',dist:'~2.5 km'},{d:'Wed',t:'Walk 4 + Jog 1 × 4',dist:'~2.5 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Walk 4 + Jog 1 × 5',dist:'~3 km'},{d:'Sat',t:'35 min brisk walk',dist:'~3 km'},{d:'Sun',t:'Rest',dist:'—'}]},
-  {w:4,name:'More Running',bc:'wb-walkrun',emoji:'🏃',goal:'Walk 3 min, jog 2 min × 5. 10 min running total!',km:'~20 km/wk',
+  {w:4,name:'More Running',bc:'wb-walkrun',emoji:'🏃',goal:'Walk 3 min, jog 2 min × 5. 10 min running total!',km:'~45 km/wk',
    days:[{d:'Mon',t:'Walk 3 + Jog 2 × 5',dist:'~3 km'},{d:'Tue',t:'Brisk walk 30 min',dist:'~2.5 km'},{d:'Wed',t:'Walk 3 + Jog 2 × 5',dist:'~3 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Walk 3 + Jog 2 × 6',dist:'~3.5 km'},{d:'Sat',t:'40 min easy walk',dist:'~3.5 km'},{d:'Sun',t:'Rest',dist:'—'}]},
-  {w:5,name:'Run-Walk-Run',bc:'wb-walkrun',emoji:'🏃‍♂️',goal:'Jog 5 min, walk 2 min × 4. Conversational pace.',km:'~24 km/wk',
+  {w:5,name:'Run-Walk-Run',bc:'wb-walkrun',emoji:'🏃‍♂️',goal:'Jog 5 min, walk 2 min × 4. Conversational pace.',km:'~55 km/wk',
    days:[{d:'Mon',t:'Jog 5 + Walk 2 × 3',dist:'~3.5 km'},{d:'Tue',t:'Walk 35 min',dist:'~3 km'},{d:'Wed',t:'Jog 5 + Walk 2 × 4',dist:'~4 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Jog 5 + Walk 2 × 4',dist:'~4 km'},{d:'Sat',t:'Long walk-run 45 min',dist:'~5 km'},{d:'Sun',t:'Rest',dist:'—'}]},
-  {w:6,name:'First Continuous Run',bc:'wb-run',emoji:'🏃',goal:'Run 20 min non-stop. Slow is fine — just keep moving!',km:'~26 km/wk',
+  {w:6,name:'First Continuous Run',bc:'wb-run',emoji:'🏃',goal:'Run 20 min non-stop. Slow is fine — just keep moving!',km:'~55 km/wk',
    days:[{d:'Mon',t:'Run 15 min easy',dist:'~2.5 km'},{d:'Tue',t:'Brisk walk 30 min',dist:'~2.5 km'},{d:'Wed',t:'Run 20 min easy',dist:'~3 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Run 20 min easy',dist:'~3 km'},{d:'Sat',t:'Long run 25 min',dist:'~4 km'},{d:'Sun',t:'Rest',dist:'—'}]},
-  {w:7,name:'Build to 5K',bc:'wb-run',emoji:'🏃‍♂️',goal:'Run 30–35 min without stopping — you are running 5K!',km:'~30 km/wk',
+  {w:7,name:'Build to 5K',bc:'wb-run',emoji:'🏃‍♂️',goal:'Run 30–35 min without stopping — you are running 5K!',km:'~60 km/wk',
    days:[{d:'Mon',t:'Run 25 min easy',dist:'~3.5 km'},{d:'Tue',t:'Walk + light jog 30 min',dist:'~2.5 km'},{d:'Wed',t:'Run 30 min easy',dist:'~4.5 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Run 25 min',dist:'~3.5 km'},{d:'Sat',t:'Long run 35 min',dist:'~5 km'},{d:'Sun',t:'Rest',dist:'—'}]},
   {w:8,name:'Race Week 🏁',bc:'wb-race',emoji:'🏆',goal:'Taper, rest, trust your training. Race day — just finish!',km:'10K Race!',
    days:[{d:'Mon',t:'Easy 20 min jog',dist:'~3 km'},{d:'Tue',t:'Rest',dist:'—'},{d:'Wed',t:'Easy 15 min jog',dist:'~2 km'},{d:'Thu',t:'Full rest',dist:'—'},{d:'Fri',t:'10 min shakeout',dist:'~1 km'},{d:'Sat',t:'Rest & prepare',dist:'—'},{d:'Sun',t:'🏆 RACE DAY — 10K!',dist:'10 km'}]},
@@ -579,331 +566,7 @@ function launchApp() {
   renderJourney();
   renderPlan();
   syncAll();
-  updateNotifUI();        // Reflects whatever state was saved + starts timer if enabled
-  // Always try to register SW if permission already granted — fixes case where
-  // user enabled in a previous session but SW never got installed.
-  if ('Notification' in window && Notification.permission === 'granted') {
-    registerNotifSW().then(reg => {
-      if (reg) console.log('SW registered on launch');
-    });
-  }
   scheduleMidnightRollover();
-}
-
-// ── NOTIFICATIONS ─────────────────────────────────────
-// Active hours: 6:00 AM to 11:00 PM local.
-// Reminder interval: 5 min (testing). Change REMINDER_MS to (2*60*60*1000) for prod.
-// State (enabled/paused) is persisted in localStorage so the user can toggle.
-// Mobile note: notifications only fire reliably when the page is open. For
-// background delivery on phone, add the app to home screen (PWA).
-const REMINDER_MS = 5 * 60 * 1000;            // 5 min — TODO: 2*60*60*1000 for prod
-const QUIET_START_HOUR = 23;                   // 11 PM
-const QUIET_END_HOUR   = 6;                    // 6 AM
-let reminderTimer = null;
-
-function notifEnabled() {
-  return ('Notification' in window)
-      && Notification.permission === 'granted'
-      && (load().notifPaused !== true);
-}
-
-// Single source of truth — call this to refresh the button + start/stop the timer
-function updateNotifUI() {
-  const btn = document.getElementById('notif-btn');
-  const label = document.getElementById('notif-label');
-  if (!btn || !label) return;
-
-  if (!('Notification' in window)) {
-    btn.textContent = 'Unsupported';
-    btn.disabled = true;
-    btn.style.opacity = '0.5';
-    label.textContent = '🔔 Your browser does not support notifications';
-    return;
-  }
-
-  if (Notification.permission === 'denied') {
-    btn.textContent = 'Blocked';
-    btn.style.background = 'var(--text3)';
-    label.textContent = '🔔 Notifications blocked — unblock in browser site settings';
-    return;
-  }
-
-  if (notifEnabled()) {
-    btn.textContent = 'Disable';
-    btn.style.background = 'var(--red)';
-    label.textContent = '🔔 Reminders ON — every 5 min during 6 AM–11 PM';
-    scheduleReminder();        // make sure timer is running
-  } else {
-    btn.textContent = 'Enable';
-    btn.style.background = 'var(--blue)';
-    label.textContent = '🔔 Get walk reminders every 5 min during 6 AM–11 PM';
-    clearTimeout(reminderTimer); // stop any running timer
-  }
-}
-
-// Called by the button. Three cases: enable, request permission, disable.
-function toggleNotifications() {
-  if (!('Notification' in window)) {
-    showToast('Notifications not supported in this browser');
-    return;
-  }
-  if (Notification.permission === 'denied') {
-    showToast('Blocked — unblock in browser settings (lock icon → Site settings → Notifications)');
-    return;
-  }
-
-  // If permission not yet granted, request it
-  if (Notification.permission !== 'granted') {
-    Notification.requestPermission().then(async (p) => {
-      if (p === 'granted') {
-        const s = load(); s.notifPaused = false; save(s);
-        showToast('Notifications enabled ✓');
-        // Register service worker for reliable mobile delivery
-        const reg = await registerNotifSW();
-        // Fire test ping using SW if available, else direct
-        try {
-          const opts = {
-            body: 'You will get reminders every 5 min during 6 AM–11 PM. This is your test ping.',
-            tag: 'runup-test',
-          };
-          if (reg && reg.showNotification) {
-            await reg.showNotification('🏃 RunUp ready!', opts);
-          } else {
-            new Notification('🏃 RunUp ready!', opts);
-          }
-        } catch(e) { console.warn('Test ping failed:', e); }
-        updateNotifUI();
-      } else {
-        showToast('Permission not granted — tap Allow next time');
-      }
-    });
-    return;
-  }
-
-  // Permission already granted — flip the paused state
-  const s = load();
-  s.notifPaused = !s.notifPaused;
-  save(s);
-
-  if (s.notifPaused) {
-    showToast('Reminders paused');
-  } else {
-    showToast('Reminders resumed ✓');
-    registerNotifSW().then(reg => {
-      try {
-        const opts = { body:'You will get walk reminders every 5 min. Test ping sent.', tag:'runup-resume' };
-        if (reg && reg.showNotification) reg.showNotification('🏃 Reminders ON', opts);
-        else new Notification('🏃 Reminders ON', opts);
-      } catch(e) {}
-    });
-  }
-  updateNotifUI();
-}
-
-function isWithinActiveHours() {
-  const h = new Date().getHours();
-  return h >= QUIET_END_HOUR && h < QUIET_START_HOUR;
-}
-
-function scheduleReminder() {
-  clearTimeout(reminderTimer);
-  if (!notifEnabled()) return;
-  reminderTimer = setTimeout(fireReminder, REMINDER_MS);
-}
-
-async function fireReminder() {
-  // Reschedule first so the cycle keeps running
-  scheduleReminder();
-
-  if (!notifEnabled()) return;
-  if (!isWithinActiveHours()) return;
-
-  const todaySteps = (fitData.steps && fitData.steps[6]) || 0;
-  const todayKm    = parseFloat((todaySteps * 0.00075).toFixed(1));
-  const todayHP    = (fitData.heartPts && fitData.heartPts[6]) || 0;
-  const w          = weekNum();
-  const stepGoal   = w<=2 ? 4000 : w<=4 ? 6000 : 8000;
-  const remaining  = Math.max(0, stepGoal - todaySteps);
-
-  let title, body;
-  if (todaySteps >= stepGoal) {
-    title = '🏆 Day ' + dayNum() + ': Goal hit!';
-    body  = todaySteps.toLocaleString() + ' steps · ' + todayKm + ' km · ' + todayHP + ' heart points.';
-  } else if (todaySteps === 0) {
-    title = '👟 Day ' + dayNum() + ': Time to walk!';
-    body  = 'No steps yet today. Step outside for 15 min to start earning XP.';
-  } else {
-    title = '🚶 ' + remaining.toLocaleString() + ' steps to go';
-    body  = 'You are at ' + todaySteps.toLocaleString() + ' steps. ' + todayHP + ' heart points so far.';
-  }
-
-  try {
-    if ('serviceWorker' in navigator) {
-      const reg = await navigator.serviceWorker.getRegistration();
-      if (reg && reg.showNotification) {
-        await reg.showNotification(title, { body, tag:'runup-reminder', renotify:true });
-      } else {
-        new Notification(title, { body, tag:'runup-reminder' });
-      }
-    } else {
-      new Notification(title, { body, tag:'runup-reminder' });
-    }
-  } catch(e) { console.warn('Notification fire failed:', e); }
-
-  if (accessToken && document.visibilityState === 'visible') syncAll();
-}
-
-// ── TEST + DIAGNOSTICS ────────────────────────────────
-// Fires a notification IMMEDIATELY using whatever method works.
-// Tries 3 approaches in order: ServiceWorker (best for Android),
-// direct Notification constructor (works on desktop), then fallback toast.
-async function testNotification() {
-  const title = '🏃 RunUp test ping';
-  const body  = 'If you see this, notifications work! Sent at ' + new Date().toLocaleTimeString();
-
-  // Need permission first
-  if (!('Notification' in window)) {
-    showToast('Notifications not supported in this browser');
-    return;
-  }
-  if (Notification.permission !== 'granted') {
-    showToast('Permission needed — tap Enable first');
-    return;
-  }
-
-  // Try ServiceWorker registration first — required on mobile Chrome
-  try {
-    if ('serviceWorker' in navigator) {
-      const reg = await navigator.serviceWorker.getRegistration();
-      if (reg) {
-        await reg.showNotification(title, { body, tag:'runup-test-sw', requireInteraction:false });
-        showToast('Test fired via Service Worker ✓');
-        return;
-      }
-    }
-  } catch(e) { console.warn('SW notification failed:', e); }
-
-  // Fall back to direct Notification — works on desktop Chrome
-  try {
-    new Notification(title, { body, tag:'runup-test' });
-    showToast('Test fired ✓ (check system tray)');
-  } catch(e) {
-    showToast('Could not fire — see Diagnose for details');
-    console.error('Notification failed:', e);
-  }
-}
-
-// Shows current state of notification system. Use this to find why nothing fires.
-function showDiagnostics() {
-  const out = document.getElementById('diag-output');
-  const lines = [];
-
-  // 1. Browser support
-  const supported = 'Notification' in window;
-  lines.push('• Notification API: ' + (supported ? '✓ supported' : '✗ NOT supported in this browser'));
-
-  if (!supported) {
-    out.textContent = lines.join('\n');
-    out.style.display = 'block';
-    return;
-  }
-
-  // 2. Permission state
-  const perm = Notification.permission;
-  lines.push('• Browser permission: ' + perm + (perm === 'granted' ? ' ✓' : perm === 'denied' ? ' ✗ (need to unblock)' : ' (not asked yet)'));
-
-  // 3. App pause state
-  const paused = load().notifPaused === true;
-  lines.push('• App paused: ' + (paused ? 'yes (tap Enable to resume)' : 'no ✓'));
-
-  // 4. Active hours
-  const h = new Date().getHours();
-  const inHours = h >= QUIET_END_HOUR && h < QUIET_START_HOUR;
-  lines.push('• Current time: ' + h + ':00 ' + (inHours ? '(within 6 AM–11 PM ✓)' : '(QUIET HOURS — reminders skip!)'));
-
-  // 5. Timer running?
-  lines.push('• Reminder timer: ' + (reminderTimer ? 'running ✓' : 'NOT running'));
-
-  // 6. Page visibility
-  lines.push('• Tab visible: ' + (document.visibilityState === 'visible' ? 'yes' : 'NO — browser may throttle background timers'));
-
-  // 7. Service Worker (needed for mobile)
-  const swSupported = 'serviceWorker' in navigator;
-  lines.push('• Service Worker: ' + (swSupported ? 'supported' : 'NOT supported'));
-
-  if (swSupported) {
-    navigator.serviceWorker.getRegistration().then(async (reg) => {
-      const updated = lines.slice();
-      updated.push('• SW registered: ' + (reg ? '✓' : 'no (will register on next Enable)'));
-
-      // PWA install status — affects background reliability
-      const standalone = window.matchMedia('(display-mode: standalone)').matches
-                      || window.navigator.standalone === true;
-      updated.push('• Installed as app: ' + (standalone ? '✓ yes' : 'NO — Add to Home Screen for background notifs'));
-
-      // Periodic Sync support
-      let periodicStatus = 'not supported in this browser';
-      if (reg && 'periodicSync' in reg) {
-        try {
-          const tags = await reg.periodicSync.getTags();
-          periodicStatus = tags.includes('runup-periodic') ? '✓ registered' : 'supported but not registered';
-        } catch(e) { periodicStatus = 'error: ' + e.message; }
-      }
-      updated.push('• Periodic background sync: ' + periodicStatus);
-
-      // Permission for periodic sync
-      try {
-        const p = await navigator.permissions.query({ name: 'periodic-background-sync' });
-        updated.push('• Periodic sync permission: ' + p.state);
-      } catch(e) {
-        updated.push('• Periodic sync permission: not queryable (' + e.message + ')');
-      }
-
-      updated.push('');
-      updated.push('REALITY CHECK:');
-      updated.push('— Web apps CANNOT reliably fire every 5 min in background');
-      updated.push('— Even installed as PWA, Chrome enforces 12+ hour minimums');
-      updated.push('— Reminders fire reliably while app is OPEN in a tab');
-      updated.push('— For true 5-min reminders, a native app is required');
-      out.textContent = updated.join('\n');
-    });
-  }
-
-  // Initial render (SW check is async)
-  out.textContent = lines.join('\n');
-  out.style.display = 'block';
-}
-
-// ── SERVICE WORKER — for reliable mobile notifications ────
-// Tries to register an external sw.js file (you should host this alongside index.html).
-// Falls back gracefully if not found — direct Notification() still works on desktop.
-async function registerNotifSW() {
-  if (!('serviceWorker' in navigator)) return null;
-  try {
-    // Look for sw.js next to index.html
-    const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
-    await navigator.serviceWorker.ready;
-
-    // Try to register periodic background sync — gives best chance of background firing.
-    // Requires the app to be "installed" (Add to Home Screen) and user to grant permission.
-    if ('periodicSync' in reg) {
-      try {
-        const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
-        if (status.state === 'granted') {
-          await reg.periodicSync.register('runup-periodic', { minInterval: 60 * 1000 });
-          console.log('Periodic background sync registered');
-        } else {
-          console.warn('Periodic sync permission:', status.state, '— background firing limited');
-        }
-      } catch(e) {
-        console.warn('Periodic sync not available:', e.message);
-      }
-    }
-    return reg;
-  } catch(e) {
-    console.warn('sw.js not found — falling back to direct notifications (works on desktop):', e.message);
-    return null;
-  }
 }
 
 // ── MIDNIGHT ROLLOVER — auto-refresh when day changes ──
@@ -965,7 +628,6 @@ async function syncAll() {
     renderProfile(user);
     processAll(stepsRaw, calRaw, hpRaw);
     document.getElementById('last-sync').textContent = new Date().toLocaleTimeString();
-    scheduleReminder();
     showToast('Synced from Google Fit');
   } catch(e) {
     showErr(e.message);
@@ -991,9 +653,10 @@ function processAll(stepsRaw, calRaw, hpRaw) {
   fitData = { labels, steps:stepsArr, calories:calArr, heartPts:hpArr };
 
   const w         = weekNum();
-  const stepGoal  = w<=2 ? 4000 : w<=4 ? 6000 : 8000;
-  const distGoal  = w<=2 ? 2    : w<=4 ? 3.5  : 5;
-  const hpGoal    = w<=2 ? 5    : w<=4 ? 10   : 15;
+  // CALIBRATED: targets push above your current baseline (~9K steps, 25+ HP)
+  const stepGoal  = w<=2 ? 9000 : w<=4 ? 11000 : w<=6 ? 13000 : 14000;
+  const distGoal  = w<=2 ? 5    : w<=4 ? 7     : w<=6 ? 8     : 9;
+  const hpGoal    = w<=2 ? 30   : w<=4 ? 40    : w<=6 ? 50    : 60;
 
   const todaySteps = stepsArr[6] || 0;
   const todayKm    = parseFloat((todaySteps * 0.00075).toFixed(1));
@@ -1031,14 +694,6 @@ function processAll(stepsRaw, calRaw, hpRaw) {
   renderCharts();
   renderPrediction(stepsArr, w);
 
-  // Push current state to Service Worker so background reminders use fresh numbers
-  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({
-      type: 'UPDATE_STATE',
-      steps: todaySteps,
-      goal: stepGoal,
-    });
-  }
 }
 
 // Extract helpers
