@@ -398,7 +398,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
   <!-- PLAN -->
   <div class="pane" id="pane-plan">
     <div style="background:var(--blue-l);border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:13px;color:var(--blue-d)">
-      <strong>Day <span id="plan-day">2</span> of 56.</strong> Weeks 1–2 are walks only. Running starts Week 3. Do not rush — every walk is building the base.
+      <strong>Day <span id="plan-day">2</span> of 56.</strong> Targets are calibrated to your current fitness — weeks 1–2 brisk walks build the base, jogging starts week 3, real running from week 6.
     </div>
     <div id="plan-container"></div>
   </div>
@@ -469,22 +469,22 @@ function weekNum() { return Math.min(8, Math.ceil(dayNum()/7)); }
 
 // ── PLAN DATA ─────────────────────────────────────────
 const PLAN = [
-  {w:1,name:'Walk Every Day',bc:'wb-walk',emoji:'🚶',goal:'20–30 min walk daily. No running yet.',km:'~35 km/wk',
-   days:[{d:'Mon',t:'20 min easy walk',dist:'~1.5 km'},{d:'Tue',t:'25 min easy walk',dist:'~2 km'},{d:'Wed',t:'25 min walk',dist:'~2 km'},{d:'Thu',t:'30 min walk',dist:'~2.5 km'},{d:'Fri',t:'Rest or stretch',dist:'—'},{d:'Sat',t:'35 min walk',dist:'~3 km'},{d:'Sun',t:'Full rest',dist:'—'}]},
-  {w:2,name:'Walk Faster',bc:'wb-walk',emoji:'🚶‍♂️',goal:'Brisk walk 30–40 min. Feel slightly breathless.',km:'~35 km/wk',
-   days:[{d:'Mon',t:'30 min brisk walk',dist:'~2.5 km'},{d:'Tue',t:'35 min brisk walk',dist:'~3 km'},{d:'Wed',t:'Rest / stretch',dist:'—'},{d:'Thu',t:'40 min brisk walk',dist:'~3.5 km'},{d:'Fri',t:'20 min easy walk',dist:'~1.5 km'},{d:'Sat',t:'45 min brisk walk',dist:'~4 km'},{d:'Sun',t:'Rest',dist:'—'}]},
-  {w:3,name:'First Jog Intervals',bc:'wb-walkrun',emoji:'🏃',goal:'Walk 4 min, jog 1 min × 4. Your first run!',km:'~45 km/wk',
-   days:[{d:'Mon',t:'Walk 4 + Jog 1 × 4',dist:'~2.5 km'},{d:'Tue',t:'30 min brisk walk',dist:'~2.5 km'},{d:'Wed',t:'Walk 4 + Jog 1 × 4',dist:'~2.5 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Walk 4 + Jog 1 × 5',dist:'~3 km'},{d:'Sat',t:'35 min brisk walk',dist:'~3 km'},{d:'Sun',t:'Rest',dist:'—'}]},
-  {w:4,name:'More Running',bc:'wb-walkrun',emoji:'🏃',goal:'Walk 3 min, jog 2 min × 5. 10 min running total!',km:'~45 km/wk',
-   days:[{d:'Mon',t:'Walk 3 + Jog 2 × 5',dist:'~3 km'},{d:'Tue',t:'Brisk walk 30 min',dist:'~2.5 km'},{d:'Wed',t:'Walk 3 + Jog 2 × 5',dist:'~3 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Walk 3 + Jog 2 × 6',dist:'~3.5 km'},{d:'Sat',t:'40 min easy walk',dist:'~3.5 km'},{d:'Sun',t:'Rest',dist:'—'}]},
-  {w:5,name:'Run-Walk-Run',bc:'wb-walkrun',emoji:'🏃‍♂️',goal:'Jog 5 min, walk 2 min × 4. Conversational pace.',km:'~55 km/wk',
-   days:[{d:'Mon',t:'Jog 5 + Walk 2 × 3',dist:'~3.5 km'},{d:'Tue',t:'Walk 35 min',dist:'~3 km'},{d:'Wed',t:'Jog 5 + Walk 2 × 4',dist:'~4 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Jog 5 + Walk 2 × 4',dist:'~4 km'},{d:'Sat',t:'Long walk-run 45 min',dist:'~5 km'},{d:'Sun',t:'Rest',dist:'—'}]},
-  {w:6,name:'First Continuous Run',bc:'wb-run',emoji:'🏃',goal:'Run 20 min non-stop. Slow is fine — just keep moving!',km:'~55 km/wk',
-   days:[{d:'Mon',t:'Run 15 min easy',dist:'~2.5 km'},{d:'Tue',t:'Brisk walk 30 min',dist:'~2.5 km'},{d:'Wed',t:'Run 20 min easy',dist:'~3 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Run 20 min easy',dist:'~3 km'},{d:'Sat',t:'Long run 25 min',dist:'~4 km'},{d:'Sun',t:'Rest',dist:'—'}]},
-  {w:7,name:'Build to 5K',bc:'wb-run',emoji:'🏃‍♂️',goal:'Run 30–35 min without stopping — you are running 5K!',km:'~60 km/wk',
-   days:[{d:'Mon',t:'Run 25 min easy',dist:'~3.5 km'},{d:'Tue',t:'Walk + light jog 30 min',dist:'~2.5 km'},{d:'Wed',t:'Run 30 min easy',dist:'~4.5 km'},{d:'Thu',t:'Rest',dist:'—'},{d:'Fri',t:'Run 25 min',dist:'~3.5 km'},{d:'Sat',t:'Long run 35 min',dist:'~5 km'},{d:'Sun',t:'Rest',dist:'—'}]},
-  {w:8,name:'Race Week 🏁',bc:'wb-race',emoji:'🏆',goal:'Taper, rest, trust your training. Race day — just finish!',km:'10K Race!',
-   days:[{d:'Mon',t:'Easy 20 min jog',dist:'~3 km'},{d:'Tue',t:'Rest',dist:'—'},{d:'Wed',t:'Easy 15 min jog',dist:'~2 km'},{d:'Thu',t:'Full rest',dist:'—'},{d:'Fri',t:'10 min shakeout',dist:'~1 km'},{d:'Sat',t:'Rest & prepare',dist:'—'},{d:'Sun',t:'🏆 RACE DAY — 10K!',dist:'10 km'}]},
+  {w:1,name:'Build Aerobic Base',bc:'wb-walk',emoji:'🚶',goal:'Brisk walks daily — 5+ km, 9K+ steps, 30+ heart pts.',km:'~35 km/wk',
+   days:[{d:'Mon',t:'50 min brisk walk',dist:'5 km'},{d:'Tue',t:'45 min brisk walk + 10 strides',dist:'5 km'},{d:'Wed',t:'40 min easy walk',dist:'4 km'},{d:'Thu',t:'50 min brisk walk',dist:'5 km'},{d:'Fri',t:'30 min recovery walk + stretch',dist:'3 km'},{d:'Sat',t:'Long walk 75 min',dist:'7 km'},{d:'Sun',t:'45 min easy walk',dist:'4.5 km'}]},
+  {w:2,name:'Faster Walks',bc:'wb-walk',emoji:'🚶‍♂️',goal:'Power walks — sustain 6 km/h. 9K+ steps, 30+ heart pts.',km:'~35 km/wk',
+   days:[{d:'Mon',t:'50 min power walk',dist:'5.5 km'},{d:'Tue',t:'45 min brisk + hill segments',dist:'5 km'},{d:'Wed',t:'40 min recovery walk',dist:'4 km'},{d:'Thu',t:'55 min power walk',dist:'6 km'},{d:'Fri',t:'30 min easy + stretch',dist:'3 km'},{d:'Sat',t:'Long walk 80 min',dist:'8 km'},{d:'Sun',t:'45 min easy walk',dist:'4.5 km'}]},
+  {w:3,name:'Walk-Jog Intervals',bc:'wb-walkrun',emoji:'🏃',goal:'Mix jogs into walks — 7 km, 11K+ steps, 40+ heart pts.',km:'~45 km/wk',
+   days:[{d:'Mon',t:'Walk 5 + Jog 2 × 5 (≈35 min)',dist:'5 km'},{d:'Tue',t:'60 min brisk walk',dist:'6 km'},{d:'Wed',t:'Walk 5 + Jog 2 × 6 (≈42 min)',dist:'6 km'},{d:'Thu',t:'45 min recovery walk',dist:'4.5 km'},{d:'Fri',t:'Walk 4 + Jog 3 × 6 (≈42 min)',dist:'6 km'},{d:'Sat',t:'Long walk-jog 90 min',dist:'9 km'},{d:'Sun',t:'50 min easy walk',dist:'5 km'}]},
+  {w:4,name:'More Jogging',bc:'wb-walkrun',emoji:'🏃',goal:'Jog blocks dominate — 7 km, 11K+ steps, 40+ heart pts.',km:'~45 km/wk',
+   days:[{d:'Mon',t:'Jog 5 + Walk 2 × 5 (≈35 min)',dist:'5.5 km'},{d:'Tue',t:'60 min brisk walk',dist:'6 km'},{d:'Wed',t:'Jog 8 + Walk 2 × 4 (≈40 min)',dist:'6 km'},{d:'Thu',t:'45 min recovery walk',dist:'4.5 km'},{d:'Fri',t:'Jog 10 + Walk 2 × 3 (≈36 min)',dist:'6 km'},{d:'Sat',t:'Long jog-walk 95 min',dist:'10 km'},{d:'Sun',t:'50 min easy walk',dist:'5 km'}]},
+  {w:5,name:'Sustained Jogging',bc:'wb-walkrun',emoji:'🏃‍♂️',goal:'Longer jog blocks — 8 km, 13K+ steps, 50+ heart pts.',km:'~55 km/wk',
+   days:[{d:'Mon',t:'Jog 15 min × 2 (5 min walk between)',dist:'6 km'},{d:'Tue',t:'60 min brisk walk',dist:'6 km'},{d:'Wed',t:'Jog 20 min + 10 walk + jog 10',dist:'7 km'},{d:'Thu',t:'45 min recovery walk',dist:'4.5 km'},{d:'Fri',t:'Tempo: jog 25 min steady',dist:'5 km'},{d:'Sat',t:'Long jog-walk 100 min',dist:'11 km'},{d:'Sun',t:'55 min easy walk',dist:'5.5 km'}]},
+  {w:6,name:'Continuous Running',bc:'wb-run',emoji:'🏃',goal:'Real runs now — 8 km, 13K+ steps, 50+ heart pts.',km:'~55 km/wk',
+   days:[{d:'Mon',t:'Run 30 min easy',dist:'5 km'},{d:'Tue',t:'45 min brisk walk',dist:'4.5 km'},{d:'Wed',t:'Run 35 min easy',dist:'6 km'},{d:'Thu',t:'45 min recovery walk',dist:'4.5 km'},{d:'Fri',t:'Run 30 min + strides',dist:'5 km'},{d:'Sat',t:'Long run 50 min',dist:'8 km'},{d:'Sun',t:'60 min easy walk',dist:'6 km'}]},
+  {w:7,name:'5K to 7K Runs',bc:'wb-run',emoji:'🏃‍♂️',goal:'Race prep — 9 km, 14K+ steps, 60+ heart pts.',km:'~60 km/wk',
+   days:[{d:'Mon',t:'Run 40 min easy',dist:'6 km'},{d:'Tue',t:'50 min brisk walk',dist:'5 km'},{d:'Wed',t:'Run 45 min steady',dist:'7 km'},{d:'Thu',t:'45 min recovery walk',dist:'4.5 km'},{d:'Fri',t:'Tempo run 30 min',dist:'5.5 km'},{d:'Sat',t:'Long run 60 min',dist:'9 km'},{d:'Sun',t:'45 min easy walk',dist:'4.5 km'}]},
+  {w:8,name:'Race Week 🏁',bc:'wb-race',emoji:'🏆',goal:'Taper — keep legs fresh, then crush the 10K!',km:'10K Race!',
+   days:[{d:'Mon',t:'Easy run 30 min',dist:'4.5 km'},{d:'Tue',t:'45 min walk',dist:'4.5 km'},{d:'Wed',t:'Easy run 25 min + strides',dist:'4 km'},{d:'Thu',t:'30 min walk',dist:'3 km'},{d:'Fri',t:'Shakeout 15 min jog',dist:'2 km'},{d:'Sat',t:'Rest & hydrate',dist:'—'},{d:'Sun',t:'🏆 RACE DAY — 10K!',dist:'10 km'}]},
 ];
 
 // Goals per week — metric-driven, no manual tasks, no water/sleep
