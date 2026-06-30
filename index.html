@@ -350,10 +350,10 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
       <div class="stat" id="stat-pts"><span class="stat-icon">❤️</span><div class="stat-label">Heart Points</div><div class="stat-val" id="s-pts">—</div><div class="stat-sub" id="s-pts-sub">Goal: 10 pts/day</div><div class="stat-bar"><div class="stat-fill" id="s-pts-bar" style="width:0%;background:var(--red)"></div></div></div>
     </div>
 
-    <!-- Enable notifications button -->
+    <!-- Notifications toggle -->
     <div style="background:var(--blue-l);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <div style="font-size:12px;color:var(--blue-d);flex:1">🔔 Get walk reminders every 5 min during 6 AM–11 PM</div>
-      <button onclick="requestNotificationPermission()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap">Enable</button>
+      <div id="notif-label" style="font-size:12px;color:var(--blue-d);flex:1">🔔 Get walk reminders every 5 min during 6 AM–11 PM</div>
+      <button id="notif-btn" onclick="toggleNotifications()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap;min-width:74px">Enable</button>
     </div>
 
     <div class="sec">Steps this week</div>
@@ -572,63 +572,128 @@ function launchApp() {
   renderJourney();
   renderPlan();
   syncAll();
-  requestNotificationPermission();
+  updateNotifUI();        // Reflects whatever state was saved + starts timer if enabled
   scheduleMidnightRollover();
 }
 
 // ── NOTIFICATIONS ─────────────────────────────────────
-// Active hours: 6:00 AM to 11:00 PM local. Outside this, reminders skip silently.
+// Active hours: 6:00 AM to 11:00 PM local.
 // Reminder interval: 5 min (testing). Change REMINDER_MS to (2*60*60*1000) for prod.
-// Mobile browser limitation: Notifications only fire while the page is open in
-// some tab. For background notifications, "Add to Home screen" to install as PWA.
-const REMINDER_MS = 5 * 60 * 1000;           // 5 min — TODO: 2*60*60*1000 for prod
-const QUIET_START_HOUR = 23;                  // 11 PM
-const QUIET_END_HOUR   = 6;                   // 6 AM (no reminders before this)
+// State (enabled/paused) is persisted in localStorage so the user can toggle.
+// Mobile note: notifications only fire reliably when the page is open. For
+// background delivery on phone, add the app to home screen (PWA).
+const REMINDER_MS = 5 * 60 * 1000;            // 5 min — TODO: 2*60*60*1000 for prod
+const QUIET_START_HOUR = 23;                   // 11 PM
+const QUIET_END_HOUR   = 6;                    // 6 AM
 let reminderTimer = null;
 
-function requestNotificationPermission() {
+function notifEnabled() {
+  return ('Notification' in window)
+      && Notification.permission === 'granted'
+      && (load().notifPaused !== true);
+}
+
+// Single source of truth — call this to refresh the button + start/stop the timer
+function updateNotifUI() {
+  const btn = document.getElementById('notif-btn');
+  const label = document.getElementById('notif-label');
+  if (!btn || !label) return;
+
   if (!('Notification' in window)) {
-    showToast('Notifications unsupported in this browser');
+    btn.textContent = 'Unsupported';
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    label.textContent = '🔔 Your browser does not support notifications';
     return;
   }
-  if (Notification.permission === 'granted') {
-    showToast('Reminders active — every 5 min between 6 AM and 11 PM');
+
+  if (Notification.permission === 'denied') {
+    btn.textContent = 'Blocked';
+    btn.style.background = 'var(--text3)';
+    label.textContent = '🔔 Notifications blocked — unblock in browser site settings';
+    return;
+  }
+
+  if (notifEnabled()) {
+    btn.textContent = 'Disable';
+    btn.style.background = 'var(--red)';
+    label.textContent = '🔔 Reminders ON — every 5 min during 6 AM–11 PM';
+    scheduleReminder();        // make sure timer is running
+  } else {
+    btn.textContent = 'Enable';
+    btn.style.background = 'var(--blue)';
+    label.textContent = '🔔 Get walk reminders every 5 min during 6 AM–11 PM';
+    clearTimeout(reminderTimer); // stop any running timer
+  }
+}
+
+// Called by the button. Three cases: enable, request permission, disable.
+function toggleNotifications() {
+  if (!('Notification' in window)) {
+    showToast('Notifications not supported in this browser');
     return;
   }
   if (Notification.permission === 'denied') {
-    showToast('Notifications blocked — enable them in browser site settings');
+    showToast('Blocked — unblock in browser settings (lock icon → Site settings → Notifications)');
     return;
   }
-  // 'default' state — show prompt after a beat so user sees the app first
-  setTimeout(() => {
+
+  // If permission not yet granted, request it
+  if (Notification.permission !== 'granted') {
     Notification.requestPermission().then(p => {
       if (p === 'granted') {
+        const s = load(); s.notifPaused = false; save(s);
         showToast('Notifications enabled ✓');
-        // Fire a test ping immediately so user knows it's working
-        try { new Notification('🏃 RunUp ready', { body:'You will get reminders every 5 min during 6 AM–11 PM.', tag:'runup-init' }); } catch(e){}
+        // Fire test ping immediately to prove it works
+        try {
+          new Notification('🏃 RunUp ready!', {
+            body: 'You will get reminders every 5 min during 6 AM–11 PM. This is your test ping.',
+            tag: 'runup-test',
+          });
+        } catch(e) { console.warn(e); }
+        updateNotifUI();
       } else {
-        showToast('Notifications skipped — tap "Allow" next time for reminders');
+        showToast('Permission not granted — tap Allow next time');
       }
     });
-  }, 2000);
+    return;
+  }
+
+  // Permission already granted — flip the paused state
+  const s = load();
+  s.notifPaused = !s.notifPaused;
+  save(s);
+
+  if (s.notifPaused) {
+    showToast('Reminders paused');
+  } else {
+    showToast('Reminders resumed ✓');
+    try {
+      new Notification('🏃 Reminders ON', {
+        body: 'You will get walk reminders every 5 min. Test ping sent.',
+        tag: 'runup-resume',
+      });
+    } catch(e) {}
+  }
+  updateNotifUI();
 }
 
 function isWithinActiveHours() {
   const h = new Date().getHours();
-  // active 6..22 (6 AM through 10:59 PM). At 11 PM exactly, stop.
   return h >= QUIET_END_HOUR && h < QUIET_START_HOUR;
 }
 
 function scheduleReminder() {
   clearTimeout(reminderTimer);
+  if (!notifEnabled()) return;
   reminderTimer = setTimeout(fireReminder, REMINDER_MS);
 }
 
 function fireReminder() {
-  // Always reschedule first so the cycle continues no matter what
+  // Reschedule first so the cycle keeps running
   scheduleReminder();
 
-  // Skip silently outside active hours
+  if (!notifEnabled()) return;
   if (!isWithinActiveHours()) return;
 
   const todaySteps = (fitData.steps && fitData.steps[6]) || 0;
@@ -641,23 +706,19 @@ function fireReminder() {
   let title, body;
   if (todaySteps >= stepGoal) {
     title = '🏆 Day ' + dayNum() + ': Goal hit!';
-    body  = todaySteps.toLocaleString() + ' steps · ' + todayKm + ' km · ' + todayHP + ' heart points. Bonus walking earns more XP!';
+    body  = todaySteps.toLocaleString() + ' steps · ' + todayKm + ' km · ' + todayHP + ' heart points.';
   } else if (todaySteps === 0) {
     title = '👟 Day ' + dayNum() + ': Time to walk!';
     body  = 'No steps yet today. Step outside for 15 min to start earning XP.';
   } else {
     title = '🚶 ' + remaining.toLocaleString() + ' steps to go';
-    body  = 'You are at ' + todaySteps.toLocaleString() + ' steps. ' + todayHP + ' heart points earned so far.';
+    body  = 'You are at ' + todaySteps.toLocaleString() + ' steps. ' + todayHP + ' heart points so far.';
   }
 
-  if ('Notification' in window && Notification.permission === 'granted') {
-    try {
-      new Notification(title, { body, tag:'runup-reminder', renotify:true });
-    } catch(e) { console.warn('Notification fire failed:', e); }
-  } else {
-    showToast(title);
-  }
-  // Refresh data so the next reminder shows up-to-date numbers
+  try {
+    new Notification(title, { body, tag:'runup-reminder', renotify:true });
+  } catch(e) { console.warn('Notification fire failed:', e); }
+
   if (accessToken && document.visibilityState === 'visible') syncAll();
 }
 
