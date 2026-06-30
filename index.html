@@ -757,47 +757,137 @@ function renderGoals(steps, km, hp, stepGoal, distGoal, hpGoal, stepPct, distPct
 }
 
 function autoXP(results, totalEarned) {
-  const store   = load();
-  const today   = new Date().toDateString();
-  const key     = 'xp_day_' + today;
-  const prev    = store[key] || 0;
+  // Just trigger the full recalc — this function used to handle only today
+  recalcAllDaysFromFit();
+}
 
-  // Only ADD XP — never deduct. If today's earned is less than what we already
-  // awarded (e.g. Fit numbers temporarily dropped during sync), keep the higher value.
-  if (totalEarned > prev) {
-    const delta   = totalEarned - prev;
-    store[key]    = totalEarned;
-    store.totalXP = (store.totalXP || 0) + delta;
-    if (!store.pts_log) store.pts_log = [];
-    results.filter(r => r.earned > 0).forEach(r => {
-      const lk = 'logged_' + today + '_' + r.metric;
-      if (!store[lk]) {
-        store[lk] = true;
-        store.pts_log.unshift({ desc: r.text, pts: r.earned, time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) });
-      }
-    });
-    if (store.pts_log.length > 60) store.pts_log = store.pts_log.slice(0,60);
-  }
+// ── RECALC ALL DAYS — single source of truth from Fit data ──
+// Walks all 7 days in fitData and computes XP per day based on steps/dist/heart pts.
+// This means yesterday's XP is awarded automatically when we see yesterday's steps in Fit.
+// Streak, totalXP, points log — all derived from this. No drift, no lost data.
+function recalcAllDaysFromFit() {
+  if (!fitData || !fitData.steps || fitData.steps.length === 0) return;
 
-  // Snapshot today's totals so we can show history per day (and prevent data loss)
+  const store = load();
+  // Build a fresh per-day map from Fit data — overwrite any stale entries
   if (!store.day_history) store.day_history = {};
-  store.day_history[today] = {
-    xp: store[key] || 0,
-    day_num: dayNum(),
-    date: today,
-  };
+  if (!store.pts_log) store.pts_log = [];
 
-  // ── STREAK — credit yesterday + light activity even if XP=0 ──
-  // The streak now only requires the user OPENED the app + had any step data.
-  // This prevents losing the streak if you just glance at the app early in the day.
-  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
-  const todaySteps = (fitData.steps && fitData.steps[6]) || 0;
-  if (store.lastDay !== today && todaySteps > 100) {
-    // Streak rolls forward if yesterday was logged, else resets to 1
-    store.streak = store.lastDay === yesterday.toDateString() ? (store.streak||0)+1 : 1;
-    store.lastDay = today;
+  // Recalculate goal thresholds for whichever week each day fell in
+  const todayDayNum = dayNum();
+  const now = Date.now();
+  const DAY = 86400000;
+
+  // We rebuild totalXP and pts_log fresh each sync so it's always consistent
+  let runningTotalXP = 0;
+  const newLog = [];
+  const newHistory = {};
+
+  for (let i = 0; i < 7; i++) {
+    // Index 0 = 6 days ago, index 6 = today
+    const dayOffset = 6 - i; // 6,5,4,3,2,1,0 → days ago
+    const dateMs = now - dayOffset * DAY;
+    const date = new Date(dateMs);
+    date.setHours(0, 0, 0, 0);
+    const dateStr = date.toDateString();
+
+    // What day number was that? (might be before training started)
+    const trainingDay = todayDayNum - dayOffset;
+    if (trainingDay < 1) continue; // before you started training, skip
+
+    // What week was that training day in?
+    const week = Math.min(8, Math.ceil(trainingDay / 7));
+
+    // Goals for that week
+    const stepGoal = week<=2 ? 9000 : week<=4 ? 11000 : week<=6 ? 13000 : 14000;
+    const distGoal = week<=2 ? 5    : week<=4 ? 7     : week<=6 ? 8     : 9;
+    const hpGoal   = week<=2 ? 30   : week<=4 ? 40    : week<=6 ? 50    : 60;
+
+    // Actual numbers for that day
+    const steps = fitData.steps[i] || 0;
+    const km    = parseFloat((steps * 0.00075).toFixed(1));
+    const hp    = (fitData.heartPts && fitData.heartPts[i]) || 0;
+
+    const stepPct = Math.min(100, Math.round(steps / stepGoal * 100));
+    const distPct = Math.min(100, Math.round(km    / distGoal * 100));
+    const hpPct   = Math.min(100, Math.round(hp    / hpGoal   * 100));
+
+    // Goals for that week — match GOALS_BY_WEEK structure
+    const goalsDef = GOALS_BY_WEEK[week - 1];
+    let dayXP = 0;
+    const dayResults = goalsDef.map(g => {
+      let pct = 0;
+      if (g.metric === 'steps')    pct = stepPct;
+      if (g.metric === 'dist')     pct = distPct;
+      if (g.metric === 'heartpts') pct = hpPct;
+      const earned = Math.round(g.pts * pct / 100);
+      dayXP += earned;
+      return { ...g, pct, earned, done: pct >= 100 };
+    });
+
+    runningTotalXP += dayXP;
+    newHistory[dateStr] = {
+      xp: dayXP,
+      day_num: trainingDay,
+      date: dateStr,
+      steps, km, hp,
+      goals: { steps: stepGoal, dist: distGoal, hp: hpGoal },
+    };
+
+    // Add to log (most recent first will be sorted later)
+    if (dayXP > 0) {
+      const label = dayOffset === 0 ? 'Today' :
+                    dayOffset === 1 ? 'Yesterday' :
+                    date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+      newLog.push({
+        desc: `Day ${trainingDay} (${label}): ${steps.toLocaleString()} steps · ${km} km · ${hp} HP`,
+        pts: dayXP,
+        time: label,
+        date: dateMs,
+      });
+    }
   }
-  store.totalDays = dayNum();
+
+  // Sort log most recent first
+  newLog.sort((a, b) => b.date - a.date);
+
+  // ── STREAK — count consecutive days from today backwards that had >100 steps ──
+  let streak = 0;
+  for (let i = 6; i >= 0; i--) {
+    const steps = fitData.steps[i] || 0;
+    if (steps > 100) {
+      streak++;
+    } else if (i < 6) {
+      break; // gap found — streak ends
+    } else {
+      // Today has no steps yet — that's OK, count from yesterday backwards
+      continue;
+    }
+  }
+
+  // Commit everything
+  store.day_history = newHistory;
+  store.pts_log = newLog;
+  store.totalXP = runningTotalXP;
+  store.streak = streak;
+  store.totalDays = todayDayNum;
+  store.lastDay = new Date().toDateString();
+
+  // Celebrate if today's goals are all met (and not already celebrated)
+  const todayStr = new Date().toDateString();
+  const todayHist = newHistory[todayStr];
+  if (todayHist) {
+    const todayResults = GOALS_BY_WEEK[Math.min(8, Math.ceil(todayDayNum / 7)) - 1];
+    const stepGoalToday = todayHist.goals.steps;
+    const allDone = (todayHist.steps >= stepGoalToday)
+                 && (todayHist.km >= todayHist.goals.dist)
+                 && (todayHist.hp >= todayHist.goals.hp);
+    if (allDone && !store['cel_' + todayStr]) {
+      store['cel_' + todayStr] = true;
+      setTimeout(() => showCelebrate('All Goals Done!', 'Your Fit data confirms it — great day!', todayHist.xp), 700);
+    }
+  }
+
   save(store);
   renderRewards();
 }
