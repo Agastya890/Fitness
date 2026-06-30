@@ -832,14 +832,39 @@ function showDiagnostics() {
   lines.push('• Service Worker: ' + (swSupported ? 'supported' : 'NOT supported'));
 
   if (swSupported) {
-    navigator.serviceWorker.getRegistration().then(reg => {
+    navigator.serviceWorker.getRegistration().then(async (reg) => {
       const updated = lines.slice();
       updated.push('• SW registered: ' + (reg ? '✓' : 'no (will register on next Enable)'));
+
+      // PWA install status — affects background reliability
+      const standalone = window.matchMedia('(display-mode: standalone)').matches
+                      || window.navigator.standalone === true;
+      updated.push('• Installed as app: ' + (standalone ? '✓ yes' : 'NO — Add to Home Screen for background notifs'));
+
+      // Periodic Sync support
+      let periodicStatus = 'not supported in this browser';
+      if (reg && 'periodicSync' in reg) {
+        try {
+          const tags = await reg.periodicSync.getTags();
+          periodicStatus = tags.includes('runup-periodic') ? '✓ registered' : 'supported but not registered';
+        } catch(e) { periodicStatus = 'error: ' + e.message; }
+      }
+      updated.push('• Periodic background sync: ' + periodicStatus);
+
+      // Permission for periodic sync
+      try {
+        const p = await navigator.permissions.query({ name: 'periodic-background-sync' });
+        updated.push('• Periodic sync permission: ' + p.state);
+      } catch(e) {
+        updated.push('• Periodic sync permission: not queryable (' + e.message + ')');
+      }
+
       updated.push('');
-      updated.push('TIPS:');
-      updated.push('— On mobile: add to Home Screen for reliable notifications');
-      updated.push('— If permission = denied: tap lock icon in URL bar → reset');
-      updated.push('— If tab not visible: keep browser open');
+      updated.push('REALITY CHECK:');
+      updated.push('— Web apps CANNOT reliably fire every 5 min in background');
+      updated.push('— Even installed as PWA, Chrome enforces 12+ hour minimums');
+      updated.push('— Reminders fire reliably while app is OPEN in a tab');
+      updated.push('— For true 5-min reminders, a native app is required');
       out.textContent = updated.join('\n');
     });
   }
@@ -858,6 +883,22 @@ async function registerNotifSW() {
     // Look for sw.js next to index.html
     const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
     await navigator.serviceWorker.ready;
+
+    // Try to register periodic background sync — gives best chance of background firing.
+    // Requires the app to be "installed" (Add to Home Screen) and user to grant permission.
+    if ('periodicSync' in reg) {
+      try {
+        const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+        if (status.state === 'granted') {
+          await reg.periodicSync.register('runup-periodic', { minInterval: 60 * 1000 });
+          console.log('Periodic background sync registered');
+        } else {
+          console.warn('Periodic sync permission:', status.state, '— background firing limited');
+        }
+      } catch(e) {
+        console.warn('Periodic sync not available:', e.message);
+      }
+    }
     return reg;
   } catch(e) {
     console.warn('sw.js not found — falling back to direct notifications (works on desktop):', e.message);
@@ -989,6 +1030,15 @@ function processAll(stepsRaw, calRaw, hpRaw) {
   renderTips(todaySteps, todayKm, todayHP, stepGoal, hpGoal);
   renderCharts();
   renderPrediction(stepsArr, w);
+
+  // Push current state to Service Worker so background reminders use fresh numbers
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'UPDATE_STATE',
+      steps: todaySteps,
+      goal: stepGoal,
+    });
+  }
 }
 
 // Extract helpers
