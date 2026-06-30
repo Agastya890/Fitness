@@ -350,10 +350,17 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
       <div class="stat" id="stat-pts"><span class="stat-icon">❤️</span><div class="stat-label">Heart Points</div><div class="stat-val" id="s-pts">—</div><div class="stat-sub" id="s-pts-sub">Goal: 10 pts/day</div><div class="stat-bar"><div class="stat-fill" id="s-pts-bar" style="width:0%;background:var(--red)"></div></div></div>
     </div>
 
-    <!-- Notifications toggle -->
-    <div style="background:var(--blue-l);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <div id="notif-label" style="font-size:12px;color:var(--blue-d);flex:1">🔔 Get walk reminders every 5 min during 6 AM–11 PM</div>
-      <button id="notif-btn" onclick="toggleNotifications()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap;min-width:74px">Enable</button>
+    <!-- Notifications toggle + diagnostics -->
+    <div style="background:var(--blue-l);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
+        <div id="notif-label" style="font-size:12px;color:var(--blue-d);flex:1">🔔 Get walk reminders every 5 min during 6 AM–11 PM</div>
+        <button id="notif-btn" onclick="toggleNotifications()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap;min-width:74px">Enable</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="testNotification()" style="background:var(--green);color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">🧪 Test Now</button>
+        <button onclick="showDiagnostics()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">🔍 Diagnose</button>
+      </div>
+      <div id="diag-output" style="display:none;margin-top:10px;padding:10px;background:var(--surface);border-radius:8px;font-family:var(--mono);font-size:11px;color:var(--text2);line-height:1.7;white-space:pre-wrap;border:1px solid var(--border)"></div>
     </div>
 
     <div class="sec">Steps this week</div>
@@ -640,17 +647,24 @@ function toggleNotifications() {
 
   // If permission not yet granted, request it
   if (Notification.permission !== 'granted') {
-    Notification.requestPermission().then(p => {
+    Notification.requestPermission().then(async (p) => {
       if (p === 'granted') {
         const s = load(); s.notifPaused = false; save(s);
         showToast('Notifications enabled ✓');
-        // Fire test ping immediately to prove it works
+        // Register service worker for reliable mobile delivery
+        const reg = await registerNotifSW();
+        // Fire test ping using SW if available, else direct
         try {
-          new Notification('🏃 RunUp ready!', {
+          const opts = {
             body: 'You will get reminders every 5 min during 6 AM–11 PM. This is your test ping.',
             tag: 'runup-test',
-          });
-        } catch(e) { console.warn(e); }
+          };
+          if (reg && reg.showNotification) {
+            await reg.showNotification('🏃 RunUp ready!', opts);
+          } else {
+            new Notification('🏃 RunUp ready!', opts);
+          }
+        } catch(e) { console.warn('Test ping failed:', e); }
         updateNotifUI();
       } else {
         showToast('Permission not granted — tap Allow next time');
@@ -668,12 +682,13 @@ function toggleNotifications() {
     showToast('Reminders paused');
   } else {
     showToast('Reminders resumed ✓');
-    try {
-      new Notification('🏃 Reminders ON', {
-        body: 'You will get walk reminders every 5 min. Test ping sent.',
-        tag: 'runup-resume',
-      });
-    } catch(e) {}
+    registerNotifSW().then(reg => {
+      try {
+        const opts = { body:'You will get walk reminders every 5 min. Test ping sent.', tag:'runup-resume' };
+        if (reg && reg.showNotification) reg.showNotification('🏃 Reminders ON', opts);
+        else new Notification('🏃 Reminders ON', opts);
+      } catch(e) {}
+    });
   }
   updateNotifUI();
 }
@@ -689,7 +704,7 @@ function scheduleReminder() {
   reminderTimer = setTimeout(fireReminder, REMINDER_MS);
 }
 
-function fireReminder() {
+async function fireReminder() {
   // Reschedule first so the cycle keeps running
   scheduleReminder();
 
@@ -716,10 +731,134 @@ function fireReminder() {
   }
 
   try {
-    new Notification(title, { body, tag:'runup-reminder', renotify:true });
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg && reg.showNotification) {
+        await reg.showNotification(title, { body, tag:'runup-reminder', renotify:true });
+      } else {
+        new Notification(title, { body, tag:'runup-reminder' });
+      }
+    } else {
+      new Notification(title, { body, tag:'runup-reminder' });
+    }
   } catch(e) { console.warn('Notification fire failed:', e); }
 
   if (accessToken && document.visibilityState === 'visible') syncAll();
+}
+
+// ── TEST + DIAGNOSTICS ────────────────────────────────
+// Fires a notification IMMEDIATELY using whatever method works.
+// Tries 3 approaches in order: ServiceWorker (best for Android),
+// direct Notification constructor (works on desktop), then fallback toast.
+async function testNotification() {
+  const title = '🏃 RunUp test ping';
+  const body  = 'If you see this, notifications work! Sent at ' + new Date().toLocaleTimeString();
+
+  // Need permission first
+  if (!('Notification' in window)) {
+    showToast('Notifications not supported in this browser');
+    return;
+  }
+  if (Notification.permission !== 'granted') {
+    showToast('Permission needed — tap Enable first');
+    return;
+  }
+
+  // Try ServiceWorker registration first — required on mobile Chrome
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        await reg.showNotification(title, { body, tag:'runup-test-sw', requireInteraction:false });
+        showToast('Test fired via Service Worker ✓');
+        return;
+      }
+    }
+  } catch(e) { console.warn('SW notification failed:', e); }
+
+  // Fall back to direct Notification — works on desktop Chrome
+  try {
+    new Notification(title, { body, tag:'runup-test' });
+    showToast('Test fired ✓ (check system tray)');
+  } catch(e) {
+    showToast('Could not fire — see Diagnose for details');
+    console.error('Notification failed:', e);
+  }
+}
+
+// Shows current state of notification system. Use this to find why nothing fires.
+function showDiagnostics() {
+  const out = document.getElementById('diag-output');
+  const lines = [];
+
+  // 1. Browser support
+  const supported = 'Notification' in window;
+  lines.push('• Notification API: ' + (supported ? '✓ supported' : '✗ NOT supported in this browser'));
+
+  if (!supported) {
+    out.textContent = lines.join('\n');
+    out.style.display = 'block';
+    return;
+  }
+
+  // 2. Permission state
+  const perm = Notification.permission;
+  lines.push('• Browser permission: ' + perm + (perm === 'granted' ? ' ✓' : perm === 'denied' ? ' ✗ (need to unblock)' : ' (not asked yet)'));
+
+  // 3. App pause state
+  const paused = load().notifPaused === true;
+  lines.push('• App paused: ' + (paused ? 'yes (tap Enable to resume)' : 'no ✓'));
+
+  // 4. Active hours
+  const h = new Date().getHours();
+  const inHours = h >= QUIET_END_HOUR && h < QUIET_START_HOUR;
+  lines.push('• Current time: ' + h + ':00 ' + (inHours ? '(within 6 AM–11 PM ✓)' : '(QUIET HOURS — reminders skip!)'));
+
+  // 5. Timer running?
+  lines.push('• Reminder timer: ' + (reminderTimer ? 'running ✓' : 'NOT running'));
+
+  // 6. Page visibility
+  lines.push('• Tab visible: ' + (document.visibilityState === 'visible' ? 'yes' : 'NO — browser may throttle background timers'));
+
+  // 7. Service Worker (needed for mobile)
+  const swSupported = 'serviceWorker' in navigator;
+  lines.push('• Service Worker: ' + (swSupported ? 'supported' : 'NOT supported'));
+
+  if (swSupported) {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      const updated = lines.slice();
+      updated.push('• SW registered: ' + (reg ? '✓' : 'no (will register on next Enable)'));
+      updated.push('');
+      updated.push('TIPS:');
+      updated.push('— On mobile: add to Home Screen for reliable notifications');
+      updated.push('— If permission = denied: tap lock icon in URL bar → reset');
+      updated.push('— If tab not visible: keep browser open');
+      out.textContent = updated.join('\n');
+    });
+  }
+
+  // Initial render (SW check is async)
+  out.textContent = lines.join('\n');
+  out.style.display = 'block';
+}
+
+// ── SERVICE WORKER — for reliable mobile notifications ────
+// Registers an inline SW that just exists so reg.showNotification() works.
+// Without this, Chrome on Android often silently drops notifications.
+async function registerNotifSW() {
+  if (!('serviceWorker' in navigator)) return null;
+  try {
+    // Use a data URL to keep everything in one file
+    const swCode = 'self.addEventListener("notificationclick",e=>{e.notification.close();e.waitUntil(clients.matchAll({type:"window"}).then(cs=>{for(const c of cs)if("focus"in c)return c.focus();if(clients.openWindow)return clients.openWindow("/")}))});';
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    const url = URL.createObjectURL(blob);
+    const reg = await navigator.serviceWorker.register(url, { scope: './' });
+    await navigator.serviceWorker.ready;
+    return reg;
+  } catch(e) {
+    console.warn('SW registration failed (this is OK on desktop):', e);
+    return null;
+  }
 }
 
 // ── MIDNIGHT ROLLOVER — auto-refresh when day changes ──
