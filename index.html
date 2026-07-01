@@ -685,7 +685,10 @@ function startAuth() {
   if (!CLIENT_ID) { showToast('Paste your Client ID first'); return; }
   localStorage.setItem('runup_cid', CLIENT_ID);
   const redir = (window.location.origin + window.location.pathname).replace(/\/$/, '');
-  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(CLIENT_ID)}&redirect_uri=${encodeURIComponent(redir)}&response_type=token&scope=${encodeURIComponent(SCOPES)}&prompt=select_account`;
+  // prompt=consent forces Google to show the permission screen every time, so newly
+  // added scopes (e.g. body/weight) are always granted instead of silently reusing an
+  // older, narrower approval. include_granted_scopes keeps previously granted ones too.
+  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(CLIENT_ID)}&redirect_uri=${encodeURIComponent(redir)}&response_type=token&scope=${encodeURIComponent(SCOPES)}&include_granted_scopes=true&prompt=consent%20select_account`;
 }
 function signOut() {
   sessionStorage.removeItem('runup_tok');
@@ -738,6 +741,27 @@ async function fitPost(type, startMs, endMs) {
   if (!r.ok) throw new Error('Fit API error ' + r.status);
   return r.json();
 }
+// Latest body measurement (weight/height). Uses ONE aggregate bucket over the whole
+// window — these instantaneous types 400 when split into many daily buckets. One bucket
+// returns the average over the window, which is fine for slow-changing measurements.
+async function fitBody(type, days) {
+  const DAY = 86400000;
+  const start = new Date(); start.setHours(0,0,0,0);
+  const endMs = start.getTime() + DAY;
+  const startMs = endMs - days * DAY;
+  const r = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      aggregateBy: [{ dataTypeName: type }],
+      bucketByTime: { durationMillis: endMs - startMs },  // single bucket = whole window
+      startTimeMillis: startMs,
+      endTimeMillis: endMs,
+    }),
+  });
+  if (!r.ok) throw new Error('Fit API error ' + r.status);
+  return latestBodyValue(await r.json());
+}
 async function getUser() {
   const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers:{ Authorization:`Bearer ${accessToken}` } });
   return r.json();
@@ -769,15 +793,15 @@ async function syncAll() {
     // Wrapped separately so a missing scope or no-data never breaks the core sync.
     fitData.bodyScopeMissing = false;
     try {
-      const [weightRaw, heightRaw] = await Promise.all([
-        fitPost('com.google.weight', todayStart.getTime() - 30 * DAY,  endMs),  // last 30 days
-        fitPost('com.google.height', todayStart.getTime() - 365 * DAY, endMs),  // last year
+      const [weightKg, heightM] = await Promise.all([
+        fitBody('com.google.weight', 90),   // avg over last 90 days
+        fitBody('com.google.height', 730),  // avg over last 2 years
       ]);
-      fitData.weightKg = latestBodyValue(weightRaw);  // kg
-      fitData.heightM  = latestBodyValue(heightRaw);  // metres
+      fitData.weightKg = weightKg;   // kg
+      fitData.heightM  = heightM;    // metres
     } catch (e) {
       console.warn('Body data unavailable:', e.message);
-      fitData.bodyScopeMissing = true;
+      if (/ 40[13]$/.test(e.message)) fitData.bodyScopeMissing = true;  // only 401/403 = auth/scope
       fitData.weightKg = null;
       fitData.heightM  = null;
     }
@@ -871,16 +895,17 @@ function extractAvg(bucket, field) {
   bucket.dataset.forEach(ds => ds.point?.forEach(p => p.value?.forEach(v => { if (v[field]) { s += v[field]; c++; } })));
   return c ? Math.round(s/c) : null;
 }
-// Latest non-null fpVal average across buckets (most recent first) — for weight/height,
-// which are logged sporadically. Unrounded so weight keeps its decimal.
+// Body measurement from an aggregate response. The *.summary point stores
+// [average, max, min] — take value[0] (the average). Scans buckets newest-first.
 function latestBodyValue(raw) {
   if (!raw?.bucket) return null;
   for (let i = raw.bucket.length - 1; i >= 0; i--) {
-    const b = raw.bucket[i];
-    if (!b.dataset) continue;
-    let s = 0, c = 0;
-    b.dataset.forEach(ds => ds.point?.forEach(p => p.value?.forEach(v => { if (v.fpVal) { s += v.fpVal; c++; } })));
-    if (c) return s / c;
+    for (const ds of (raw.bucket[i].dataset || [])) {
+      for (const p of (ds.point || [])) {
+        const v = p.value?.[0];   // summary avg (kg for weight, metres for height)
+        if (v && typeof v.fpVal === 'number') return v.fpVal;
+      }
+    }
   }
   return null;
 }
