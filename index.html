@@ -741,26 +741,24 @@ async function fitPost(type, startMs, endMs) {
   if (!r.ok) throw new Error('Fit API error ' + r.status);
   return r.json();
 }
-// Latest body measurement (weight/height). Uses ONE aggregate bucket over the whole
-// window — these instantaneous types 400 when split into many daily buckets. One bucket
-// returns the average over the window, which is fine for slow-changing measurements.
+// Latest body measurement (weight/height) read from the raw merged data source.
+// Aggregating these instantaneous types is unreliable (returns 400); reading the raw
+// dataset and taking the most recent point is the canonical, dependable approach.
 async function fitBody(type, days) {
-  const DAY = 86400000;
-  const start = new Date(); start.setHours(0,0,0,0);
-  const endMs = start.getTime() + DAY;
-  const startMs = endMs - days * DAY;
-  const r = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      aggregateBy: [{ dataTypeName: type }],
-      bucketByTime: { durationMillis: endMs - startMs },  // single bucket = whole window
-      startTimeMillis: startMs,
-      endTimeMillis: endMs,
-    }),
-  });
+  const source = type === 'com.google.weight'
+    ? 'derived:com.google.weight:com.google.android.gms:merge_weight'
+    : 'derived:com.google.height:com.google.android.gms:merge_height';
+  const now = Date.now(), DAY = 86400000;
+  const startNs = String(now - days * DAY) + '000000';  // ms → ns as a string (no float loss)
+  const endNs   = String(now + DAY) + '000000';
+  const url = `https://www.googleapis.com/fitness/v1/users/me/dataSources/${source}/datasets/${startNs}-${endNs}`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!r.ok) throw new Error('Fit API error ' + r.status);
-  return latestBodyValue(await r.json());
+  const pts = (await r.json()).point || [];
+  if (!pts.length) return null;
+  pts.sort((a, b) => (a.endTimeNanos < b.endTimeNanos ? -1 : 1));  // oldest → newest
+  const v = pts[pts.length - 1].value?.[0];                        // most recent point
+  return (v && typeof v.fpVal === 'number') ? v.fpVal : null;
 }
 async function getUser() {
   const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers:{ Authorization:`Bearer ${accessToken}` } });
@@ -792,19 +790,19 @@ async function syncAll() {
     // Body data (weight/height) for the Dietitian — optional, needs fitness.body.read scope.
     // Wrapped separately so a missing scope or no-data never breaks the core sync.
     fitData.bodyScopeMissing = false;
-    try {
-      const [weightKg, heightM] = await Promise.all([
-        fitBody('com.google.weight', 90),   // avg over last 90 days
-        fitBody('com.google.height', 730),  // avg over last 2 years
-      ]);
-      fitData.weightKg = weightKg;   // kg
-      fitData.heightM  = heightM;    // metres
-    } catch (e) {
-      console.warn('Body data unavailable:', e.message);
-      if (/ 40[13]$/.test(e.message)) fitData.bodyScopeMissing = true;  // only 401/403 = auth/scope
-      fitData.weightKg = null;
-      fitData.heightM  = null;
-    }
+    console.log('RunUp: fetching body data (raw dataset v2)');  // build marker — confirms new code is live
+    const [wRes, hRes] = await Promise.allSettled([
+      fitBody('com.google.weight', 120),   // most recent within 120 days
+      fitBody('com.google.height', 1095),  // most recent within 3 years
+    ]);
+    fitData.weightKg = wRes.status === 'fulfilled' ? wRes.value : null;   // kg
+    fitData.heightM  = hRes.status === 'fulfilled' ? hRes.value : null;   // metres
+    [wRes, hRes].forEach(x => {
+      if (x.status === 'rejected') {
+        console.warn('Body data unavailable:', x.reason?.message);
+        if (/ 40[13]$/.test(x.reason?.message || '')) fitData.bodyScopeMissing = true;  // 401/403 = auth/scope
+      }
+    });
 
     renderProfile(user);
     processAll(stepsRaw, calRaw, hpRaw);
