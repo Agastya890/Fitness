@@ -792,8 +792,8 @@ async function syncAll() {
     fitData.bodyScopeMissing = false;
     console.log('RunUp: fetching body data (raw dataset v2)');  // build marker — confirms new code is live
     const [wRes, hRes] = await Promise.allSettled([
-      fitBody('com.google.weight', 120),   // most recent within 120 days
-      fitBody('com.google.height', 1095),  // most recent within 3 years
+      fitBody('com.google.weight', 1825),  // most recent within 5 years
+      fitBody('com.google.height', 1825),  // most recent within 5 years
     ]);
     fitData.weightKg = wRes.status === 'fulfilled' ? wRes.value : null;   // kg
     fitData.heightM  = hRes.status === 'fulfilled' ? hRes.value : null;   // metres
