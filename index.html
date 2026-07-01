@@ -275,6 +275,27 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
 .chat-input:focus { border-color: var(--blue); }
 .chat-send { background: var(--blue); color: #fff; border: none; border-radius: 9px; padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); }
 
+/* DIET */
+.diet-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.diet-cal-row { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 16px; }
+.diet-cal-num { font-size: 40px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+.diet-cal-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
+.diet-daytype { font-size: 11px; font-weight: 600; padding: 4px 11px; border-radius: 20px; background: var(--blue-l); color: var(--blue); white-space: nowrap; }
+.macro { margin-bottom: 11px; }
+.macro:last-child { margin-bottom: 0; }
+.macro-top { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+.macro-name { font-weight: 600; color: var(--text); }
+.macro-val { font-family: var(--mono); color: var(--text2); }
+.macro-track { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+.macro-fill { height: 100%; border-radius: 4px; transition: width .7s ease; }
+.diet-sub-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.diet-sub { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 8px; text-align: center; box-shadow: var(--shadow); }
+.diet-sub-val { font-size: 18px; font-weight: 700; font-family: var(--mono); line-height: 1.1; }
+.diet-sub-lbl { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .04em; margin-top: 4px; }
+.diet-empty { text-align: center; padding: 12px 6px; }
+.diet-empty-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.diet-empty-body { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
 /* CELEBRATE */
 .celebrate { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 999; opacity: 0; pointer-events: none; transition: opacity .2s; }
 .celebrate.show { opacity: 1; pointer-events: auto; }
@@ -340,6 +361,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
   <div class="tabs">
     <button class="tab active" onclick="showPane('today',this)">Today</button>
     <button class="tab" onclick="showPane('coach',this)">Coach</button>
+    <button class="tab" onclick="showPane('diet',this)">Diet</button>
     <button class="tab" onclick="showPane('rewards',this)">Rewards</button>
     <button class="tab" onclick="showPane('journey',this)">Journey</button>
     <button class="tab" onclick="showPane('plan',this)">Plan</button>
@@ -455,6 +477,24 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
     </div>
   </div>
 
+  <!-- DIET -->
+  <div class="pane" id="pane-diet">
+    <div class="coach-hero">
+      <div class="coach-hero-ic">🥗</div>
+      <div>
+        <div class="coach-hero-lbl">Your Dietitian says</div>
+        <div class="coach-hero-msg" id="diet-msg">Sync to see today's nutrition targets.</div>
+      </div>
+    </div>
+
+    <div class="sec">Today's targets</div>
+    <div class="diet-card" id="diet-card"><div style="color:var(--text3);font-size:13px;padding:.5rem 0">Sync your Google Fit data.</div></div>
+    <div class="diet-sub-grid" id="diet-sub-grid"></div>
+
+    <div class="sec">Eating guide</div>
+    <div class="tip-card" id="diet-tips"><div style="color:var(--text3);font-size:13px;padding:.5rem 0">Sync to see guidance.</div></div>
+  </div>
+
   <!-- REWARDS -->
   <div class="pane" id="pane-rewards">
     <div class="level-card">
@@ -542,6 +582,7 @@ const STORE_KEY  = 'runup_v3';
 const SCOPES = [
   'https://www.googleapis.com/auth/fitness.activity.read',
   'https://www.googleapis.com/auth/fitness.heart_rate.read',
+  'https://www.googleapis.com/auth/fitness.body.read',
   'https://www.googleapis.com/auth/fitness.sleep.read',
   'https://www.googleapis.com/auth/userinfo.profile',
   'https://www.googleapis.com/auth/userinfo.email',
@@ -723,6 +764,24 @@ async function syncAll() {
       fitPost('com.google.calories.expended',  startMs, endMs),
       fitPost('com.google.heart_minutes',      startMs, endMs),  // Heart Points — works on phone
     ]);
+
+    // Body data (weight/height) for the Dietitian — optional, needs fitness.body.read scope.
+    // Wrapped separately so a missing scope or no-data never breaks the core sync.
+    fitData.bodyScopeMissing = false;
+    try {
+      const [weightRaw, heightRaw] = await Promise.all([
+        fitPost('com.google.weight', todayStart.getTime() - 30 * DAY,  endMs),  // last 30 days
+        fitPost('com.google.height', todayStart.getTime() - 365 * DAY, endMs),  // last year
+      ]);
+      fitData.weightKg = latestBodyValue(weightRaw);  // kg
+      fitData.heightM  = latestBodyValue(heightRaw);  // metres
+    } catch (e) {
+      console.warn('Body data unavailable:', e.message);
+      fitData.bodyScopeMissing = true;
+      fitData.weightKg = null;
+      fitData.heightM  = null;
+    }
+
     renderProfile(user);
     processAll(stepsRaw, calRaw, hpRaw);
     document.getElementById('last-sync').textContent = new Date().toLocaleTimeString();
@@ -748,7 +807,10 @@ function processAll(stepsRaw, calRaw, hpRaw) {
     hpArr.push(Math.round(extractSum(hpRaw.bucket[6-i], 'fpVal') || extractSum(hpRaw.bucket[6-i], 'intVal')) || 0);
   }
 
-  fitData = { labels, steps:stepsArr, calories:calArr, heartPts:hpArr };
+  // Preserve body data (set in syncAll) — this assignment replaces fitData wholesale.
+  fitData = { labels, steps:stepsArr, calories:calArr, heartPts:hpArr,
+              weightKg: fitData.weightKg ?? null, heightM: fitData.heightM ?? null,
+              bodyScopeMissing: fitData.bodyScopeMissing || false };
 
   const w         = weekNum();
   // CALIBRATED: targets push above your current baseline (~9K steps, 25+ HP)
@@ -791,6 +853,7 @@ function processAll(stepsRaw, calRaw, hpRaw) {
   renderTips(todaySteps, todayKm, todayHP, stepGoal, hpGoal);
   renderCharts();
   renderCoach();        // computes coachState (the shared engine)
+  renderDietitian();    // reads coachState.nutrition
   renderPrediction();   // Stats card reads coachState — must run after renderCoach
 
 }
@@ -807,6 +870,19 @@ function extractAvg(bucket, field) {
   let s = 0, c = 0;
   bucket.dataset.forEach(ds => ds.point?.forEach(p => p.value?.forEach(v => { if (v[field]) { s += v[field]; c++; } })));
   return c ? Math.round(s/c) : null;
+}
+// Latest non-null fpVal average across buckets (most recent first) — for weight/height,
+// which are logged sporadically. Unrounded so weight keeps its decimal.
+function latestBodyValue(raw) {
+  if (!raw?.bucket) return null;
+  for (let i = raw.bucket.length - 1; i >= 0; i--) {
+    const b = raw.bucket[i];
+    if (!b.dataset) continue;
+    let s = 0, c = 0;
+    b.dataset.forEach(ds => ds.point?.forEach(p => p.value?.forEach(v => { if (v.fpVal) { s += v.fpVal; c++; } })));
+    if (c) return s / c;
+  }
+  return null;
 }
 
 // ── GOALS — auto evaluated from Fit data ─────────────
@@ -1291,6 +1367,9 @@ function computeIntelligence() {
     rows: DISTS.map(x => ({ label:x.label, now: curPace*x.d, proj: projPace*x.d })),
   };
 
+  // ── NUTRITION / DIETITIAN — from Google Fit weight/height + activity ──
+  const nutrition = computeNutrition(w, todayHP);
+
   // ── HEADLINE COACH MESSAGE ──
   let msg;
   if (today === 0 && todayHP === 0)
@@ -1309,7 +1388,53 @@ function computeIntelligence() {
       {t:'Consistency (active days)',v:hConsist,max:25,c:'var(--green)'},
       {t:'Trend (week direction)',v:hTrend,max:20,c:'var(--amber)'},
     ],
-    recovery, recDeduct, insights, patterns, race, msg };
+    recovery, recDeduct, insights, patterns, race, nutrition, msg };
+}
+
+// ── NUTRITION ENGINE — all inputs come from Google Fit (weight, height, activity) ──
+// Energy: BMR (22 kcal/kg) × an activity factor derived from average daily steps.
+// Today's target then flexes with the planned workout (fuel up on big days, ease on rest).
+// No age/sex needed, no manual entry — purely Fit-derived and fully explainable.
+function computeNutrition(w, todayHP) {
+  const weightKg = fitData.weightKg, heightM = fitData.heightM;
+  const avgSteps = Math.round(mean(fitData.steps || [0]));
+
+  // Which workout is scheduled today? (Mon=0 … Sun=6, matching PLAN.days order)
+  const jsDay = new Date().getDay();
+  const todayIdx = jsDay === 0 ? 6 : jsDay - 1;
+  const workout = (PLAN[w-1] && PLAN[w-1].days[todayIdx]) || null;
+  const distNum = workout ? (parseFloat(workout.dist) || 0) : 0;
+  const dayType = distNum >= 8 ? 'big'
+                : distNum >= 5 ? 'moderate'
+                : (workout && /rest/i.test(workout.t)) ? 'rest'
+                : 'easy';
+
+  if (!weightKg) {
+    // No weight in Fit — offer the recent average daily burn as a rough maintenance figure.
+    const cals = (fitData.calories || []).slice(0, 6).filter(c => c > 1000);
+    const tdee = cals.length ? Math.round(cals.reduce((a,b)=>a+b,0) / cals.length) : null;
+    return { available:false, tdee, dayType, distNum, workout };
+  }
+
+  const af = avgSteps < 5000 ? 1.4 : avgSteps < 8000 ? 1.55 : avgSteps < 12000 ? 1.7 : 1.85;
+  const bmr = Math.round(22 * weightKg);
+  const maintenance = Math.round(bmr * af);
+  const fuelMult = dayType === 'big' ? 1.12 : dayType === 'moderate' ? 1.06 : dayType === 'rest' ? 0.97 : 1.0;
+  const target = Math.round(maintenance * fuelMult / 10) * 10;
+
+  const proteinG = Math.round(1.6 * weightKg);                 // endurance protein
+  const fatG     = Math.round(0.25 * target / 9);              // ~25% of energy from fat
+  const carbG    = Math.max(0, Math.round((target - proteinG*4 - fatG*9) / 4));  // rest = carbs (running fuel)
+  const waterMl  = Math.round((35 * weightKg + (todayHP / 30) * 350) / 50) * 50; // 35 ml/kg + sweat
+
+  let bmi = null, bmiCat = '';
+  if (heightM) {
+    bmi = +(weightKg / (heightM * heightM)).toFixed(1);
+    bmiCat = bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Healthy' : bmi < 30 ? 'Overweight' : 'Obese';
+  }
+
+  return { available:true, weightKg:+weightKg.toFixed(1), heightM, bmi, bmiCat,
+           bmr, maintenance, target, proteinG, fatG, carbG, waterMl, dayType, distNum, workout, af };
 }
 
 function raceNote(c) {
@@ -1388,9 +1513,74 @@ function renderCoach() {
   // Race-time predictor (shared markup — see raceCardHTML)
   document.getElementById('race-card').innerHTML = raceCardHTML(c);
 
-  const chips = ['Am I ready for 10K?','Should I rest today?','How can I improve endurance?','How am I doing?'];
+  const chips = ['Am I ready for 10K?','Should I rest today?','What should I eat today?','How am I doing?'];
   document.getElementById('chat-chips').innerHTML = chips.map(q =>
     `<button class="chat-chip" onclick="askChip('${q.replace(/'/g,"\\'")}')">${q}</button>`).join('');
+}
+
+// ── DIETITIAN — renders targets computed from Google Fit body + activity data ──
+function renderDietitian() {
+  if (!coachState || !coachState.nutrition) return;
+  const n   = coachState.nutrition;
+  const card = document.getElementById('diet-card');
+  const grid = document.getElementById('diet-sub-grid');
+  const msgEl = document.getElementById('diet-msg');
+
+  if (!n.available) {
+    msgEl.textContent = "I need your weight to personalise your targets.";
+    const note = fitData.bodyScopeMissing
+      ? `I don't have permission to read your body data yet. Sign out and reconnect, and allow the <strong>body / weight</strong> permission on the Google screen.`
+      : `Open <strong>Google Fit → Profile</strong> and log your weight (and height). I read it straight from Fit — no typing here. ${n.tdee ? `Your recent daily burn averages about <strong>${n.tdee.toLocaleString()} kcal</strong>.` : ''}`;
+    card.innerHTML = `<div class="diet-empty"><div style="font-size:30px;margin-bottom:8px">⚖️</div><div class="diet-empty-title">Add your weight to Google Fit</div><div class="diet-empty-body">${note}</div></div>`;
+    grid.innerHTML = '';
+    document.getElementById('diet-tips').innerHTML =
+      `<div class="tip"><div class="tip-ic" style="background:var(--blue-l)">🥗</div><div><div class="tip-title">General fuelling</div><div class="tip-body">Eat enough to support training — don't run on empty. Prioritise carbs around your sessions and protein across the day. Add your weight for exact numbers.</div></div></div>`;
+    return;
+  }
+
+  msgEl.textContent = n.dayType === 'big'
+    ? `Big training day — fuel up. Target ${n.target.toLocaleString()} kcal with extra carbs around your session.`
+    : n.dayType === 'rest'
+    ? `Recovery day — slightly lighter at ${n.target.toLocaleString()} kcal, with protein kept steady to repair.`
+    : `Target about ${n.target.toLocaleString()} kcal today to fuel your training and recover well.`;
+
+  const pKcal = n.proteinG*4, cKcal = n.carbG*4, fKcal = n.fatG*9, tot = pKcal + cKcal + fKcal || 1;
+  const pct = k => Math.round(k / tot * 100);
+  const dayLabel = n.dayType === 'big' ? '🏃 Big day' : n.dayType === 'rest' ? '😴 Rest day' : n.dayType === 'moderate' ? '🚶 Moderate' : '🍽️ Training day';
+
+  card.innerHTML = `
+    <div class="diet-cal-row">
+      <div><div class="diet-cal-num">${n.target.toLocaleString()}</div><div class="diet-cal-lbl">kcal target</div></div>
+      <div class="diet-daytype">${dayLabel}</div>
+    </div>
+    <div class="macro"><div class="macro-top"><span class="macro-name">Protein</span><span class="macro-val">${n.proteinG} g · ${pct(pKcal)}%</span></div><div class="macro-track"><div class="macro-fill" style="width:${pct(pKcal)}%;background:var(--red)"></div></div></div>
+    <div class="macro"><div class="macro-top"><span class="macro-name">Carbs</span><span class="macro-val">${n.carbG} g · ${pct(cKcal)}%</span></div><div class="macro-track"><div class="macro-fill" style="width:${pct(cKcal)}%;background:var(--blue)"></div></div></div>
+    <div class="macro"><div class="macro-top"><span class="macro-name">Fat</span><span class="macro-val">${n.fatG} g · ${pct(fKcal)}%</span></div><div class="macro-track"><div class="macro-fill" style="width:${pct(fKcal)}%;background:var(--amber)"></div></div></div>`;
+
+  grid.innerHTML = `
+    <div class="diet-sub"><div class="diet-sub-val" style="color:var(--blue)">${n.waterMl.toLocaleString()}</div><div class="diet-sub-lbl">ml water</div></div>
+    ${n.bmi
+      ? `<div class="diet-sub"><div class="diet-sub-val" style="color:${n.bmiCat==='Healthy'?'var(--green)':'var(--amber)'}">${n.bmi}</div><div class="diet-sub-lbl">BMI · ${n.bmiCat}</div></div>`
+      : `<div class="diet-sub"><div class="diet-sub-val" style="color:var(--text3)">—</div><div class="diet-sub-lbl">BMI · add height</div></div>`}
+    <div class="diet-sub"><div class="diet-sub-val">${n.maintenance.toLocaleString()}</div><div class="diet-sub-lbl">maintain kcal</div></div>`;
+
+  document.getElementById('diet-tips').innerHTML = dietTips(n, coachState.w).map(t =>
+    `<div class="tip"><div class="tip-ic" style="background:${t.bg}">${t.ic}</div><div><div class="tip-title">${t.title}</div><div class="tip-body">${t.body}</div></div></div>`).join('');
+}
+
+function dietTips(n, w) {
+  const tips = [];
+  if (n.dayType === 'big') {
+    tips.push({ic:'🍝',bg:'var(--blue-l)',title:'Fuel before your long effort',body:`Today is a ${n.distNum} km session. Eat a carb-rich meal 2–3 h before (oats, rice, banana, toast). Within 30 min after, pair carbs with ~${Math.round(n.proteinG*0.3)} g protein to recover.`});
+    tips.push({ic:'🧂',bg:'var(--amber-l)',title:'Replace what you sweat',body:`Long efforts cost fluid and sodium. Sip toward ${n.waterMl.toLocaleString()} ml across the day, and add electrolytes if it's hot or you finish salty.`});
+  } else if (n.dayType === 'rest') {
+    tips.push({ic:'🥦',bg:'var(--green-l)',title:'Recovery-day plate',body:`Ease the carbs, keep protein steady (${n.proteinG} g) to repair. Fill half the plate with vegetables and lean protein.`});
+  } else {
+    tips.push({ic:'🍽️',bg:'var(--blue-l)',title:'Balanced training-day plate',body:`Aim for ${n.carbG} g carbs to power your session, ${n.proteinG} g protein across meals, and healthy fats. Don't under-eat — fuelling drives the adaptation.`});
+  }
+  tips.push({ic:'💪',bg:'#fdf0f0',title:`Protein target: ${n.proteinG} g`,body:`At ~1.6 g per kg, spread it across 3–4 meals (~${Math.round(n.proteinG/4)} g each). Endurance training needs protein too, not just carbs.`});
+  if (w >= 7) tips.push({ic:'🏁',bg:'var(--amber-l)',title:'Race-week eating',body:'Stick to familiar foods, nudge carbs up in the final 2–3 days, hydrate consistently, and avoid anything new the night before.'});
+  return tips;
 }
 
 // ── RULE-BASED CHATBOT — answers from the user's own data ──
@@ -1420,6 +1610,15 @@ function coachAnswer(qRaw) {
   }
   if (/(how am i|how'm i|doing|progress|status|summary|overall)/.test(q)) {
     return `${c.msg} Overall: health ${c.health}/100, recovery ${c.recovery}/100, averaging ${c.avgSteps.toLocaleString()} steps with a ${c.trendPct>=0?'+':''}${c.trendPct}% trend. Your strongest day is ${c.bestDay}.`;
+  }
+  if (/(eat|food|diet|nutrition|calorie|macro|protein|carb|fat|meal|hydrat|water|drink|fuel)/.test(q)) {
+    const n = c.nutrition;
+    if (!n || !n.available) return "Add your weight (and height) in Google Fit — open Google Fit → Profile to log them, then Sync — and I'll calculate your calorie, protein, carb and hydration targets straight from it.";
+    if (/water|hydrat|drink/.test(q)) return `Aim for about ${n.waterMl.toLocaleString()} ml of water today${n.distNum?`, more around your ${n.distNum} km session`:''}. That's ~35 ml per kg plus extra for sweat.`;
+    if (/protein/.test(q)) return `Target ~${n.proteinG} g protein today (about ${Math.round(n.proteinG/4)} g across 4 meals). Endurance training needs protein to repair, not just carbs.`;
+    if (/carb/.test(q)) return `Aim for ~${n.carbG} g carbs today — your main running fuel. Load a little more before long or hard sessions.`;
+    if (/(macro|fat)/.test(q)) return `Today's split: ${n.proteinG} g protein · ${n.carbG} g carbs · ${n.fatG} g fat, for about ${n.target.toLocaleString()} kcal.`;
+    return `Based on your Google Fit weight, today's target is about ${n.target.toLocaleString()} kcal (${n.proteinG} g protein, ${n.carbG} g carbs, ${n.fatG} g fat) plus ${n.waterMl.toLocaleString()} ml water. It's a ${n.dayType} training day — see the Diet tab for the full breakdown.`;
   }
   if (/(step|goal|today|how many)/.test(q)) {
     const left = Math.max(0, c.stepGoal - c.today);
