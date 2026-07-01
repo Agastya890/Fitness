@@ -744,14 +744,13 @@ async function fitPost(type, startMs, endMs) {
 // Latest body measurement (weight/height) read from the raw merged data source.
 // Aggregating these instantaneous types is unreliable (returns 400); reading the raw
 // dataset and taking the most recent point is the canonical, dependable approach.
-async function fitBody(type, days) {
+async function fitBody(type) {
   const source = type === 'com.google.weight'
     ? 'derived:com.google.weight:com.google.android.gms:merge_weight'
     : 'derived:com.google.height:com.google.android.gms:merge_height';
-  const now = Date.now(), DAY = 86400000;
-  const startNs = String(now - days * DAY) + '000000';  // ms → ns as a string (no float loss)
-  const endNs   = String(now + DAY) + '000000';
-  const url = `https://www.googleapis.com/fitness/v1/users/me/dataSources/${source}/datasets/${startNs}-${endNs}`;
+  const endNs = String(Date.now() + 86400000) + '000000';  // now + 1 day, in nanoseconds
+  // Read the ENTIRE history (0 → now) so an old entry is never missed; take the newest point.
+  const url = `https://www.googleapis.com/fitness/v1/users/me/dataSources/${source}/datasets/0-${endNs}`;
   const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!r.ok) throw new Error('Fit API error ' + r.status);
   const pts = (await r.json()).point || [];
@@ -792,8 +791,8 @@ async function syncAll() {
     fitData.bodyScopeMissing = false;
     console.log('RunUp: fetching body data (raw dataset v2)');  // build marker — confirms new code is live
     const [wRes, hRes] = await Promise.allSettled([
-      fitBody('com.google.weight', 1825),  // most recent within 5 years
-      fitBody('com.google.height', 1825),  // most recent within 5 years
+      fitBody('com.google.weight'),   // reads full history, takes newest
+      fitBody('com.google.height'),
     ]);
     fitData.weightKg = wRes.status === 'fulfilled' ? wRes.value : null;   // kg
     fitData.heightM  = hRes.status === 'fulfilled' ? hRes.value : null;   // metres
